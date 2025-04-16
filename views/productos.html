@@ -24,17 +24,23 @@
   <div class="modal-contenido">
     <span id="cerrarModal" class="cerrar">✖</span>
     <h3>Agregar nuevo producto</h3>
-    <form id="formAgregarProducto">
+    <form id="formAgregarProducto" enctype="multipart/form-data">
       <input type="hidden" id="productoId" name="productoId" />
       <input type="text" name="nombre" placeholder="Nombre del producto" required />
       <input type="text" name="descripcion" placeholder="Descripción" required />
       <input type="number" name="precio" placeholder="Precio" required />
       <input type="number" name="cantidad" placeholder="Stock" required />
       <input type="text" name="categoria" placeholder="Categoría" required />
-      <input type="text" name="imagen" placeholder="URL de imagen" required />
+
+      <!-- Imagen con vista previa -->
+      <input type="file" name="imagen" accept="image/*" required />
+      <img id="previewImagen" style="max-height: 120px; margin-top: 10px;" />
+
       <button type="submit">Guardar</button>
-    </form>    
+    </form>
   </div>
+</div>
+>
 </div>
 
 <!-- MODAL PARA EDITAR PRODUCTO -->

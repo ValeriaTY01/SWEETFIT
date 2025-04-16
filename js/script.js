@@ -73,21 +73,33 @@ function initProductoModal() {
       }
     });
 
+    // Vista previa de imagen
+    const inputImagen = form.querySelector("input[name='imagen']");
+    const preview = document.getElementById("previewImagen");
+
+    if (inputImagen && preview) {
+      inputImagen.addEventListener("change", () => {
+        const file = inputImagen.files[0];
+        if (file) {
+          preview.src = URL.createObjectURL(file);
+        }
+      });
+    }
+
+    // Manejo del envío del formulario
     form.addEventListener("submit", e => {
       e.preventDefault();
       const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
       const id = document.getElementById("productoId").value;
 
       const url = id
         ? `http://localhost:5000/api/editar_producto/${id}`
         : "http://localhost:5000/api/productos";
-      const method = id ? "PUT" : "POST";
+      const method = "POST"; // Para FormData, usamos POST también para edición
 
       fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        body: formData
       })
         .then(res => res.json())
         .then(response => {
@@ -95,7 +107,8 @@ function initProductoModal() {
             modal.style.display = "none";
             form.reset();
             document.getElementById("productoId").value = "";
-            cargarProductos(); // usa categoriaActual y paginaActual
+            preview.src = "";
+            cargarProductos();
           } else {
             alert("Error al guardar el producto");
           }
@@ -130,7 +143,7 @@ function cargarCategorias() {
         btn.addEventListener("click", () => {
           botones.forEach(b => b.classList.remove("activo"));
           btn.classList.add("activo");
-          cargarProductos(btn.dataset.cat, 1); // reinicia a la página 1
+          cargarProductos(btn.dataset.cat, 1);
         });
       });
     });
@@ -168,7 +181,7 @@ function cargarProductos(categoria = categoriaActual, pagina = paginaActual) {
         const card = document.createElement("div");
         card.className = "producto-card";
         card.innerHTML = `
-          <img src="${prod.imagen}" alt="${prod.nombre}" />
+          <img src="http://localhost:5000/uploads/${prod.imagen}" alt="${prod.nombre}" />
           <h3>${prod.nombre}</h3>
           <p class="desc">${prod.descripcion}</p>
           <p class="cantidad ${prod.cantidad <= 5 ? "stock-bajo" : ""}">
@@ -231,6 +244,8 @@ function editarProducto(id) {
     .then(prod => {
       const modal = document.getElementById("modalAgregarProducto");
       const form = document.getElementById("formAgregarProducto");
+      const preview = document.getElementById("previewImagen");
+
       if (!prod || !form) return;
 
       form.nombre.value = prod.nombre;
@@ -238,8 +253,8 @@ function editarProducto(id) {
       form.precio.value = prod.precio;
       form.cantidad.value = prod.cantidad;
       form.categoria.value = prod.categoria;
-      form.imagen.value = prod.imagen;
       document.getElementById("productoId").value = prod.id_producto;
+      preview.src = `http://localhost:5000/uploads/${prod.imagen}`;
 
       modal.style.display = "flex";
     })
