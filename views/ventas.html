@@ -21,9 +21,9 @@
           <input type="text" placeholder="Empleado" name="empleado" required />
           <select name="tipo_venta" required>
             <option value="">Tipo de Venta</option>
-            <option value="MOSTRADOR">Mostrador</option>
+            <option value="LOCAL">Local</option>
             <option value="DOMICILIO">Domicilio</option>
-            <option value="ONLINE">Online</option>
+            <option value="APP">App</option>
           </select>
         </div>
   
@@ -62,9 +62,9 @@
         <input type="date" id="filtroFechaFin" />
         <select id="filtroTipo">
           <option value="">Todos los Tipos</option>
-          <option value="MOSTRADOR">Mostrador</option>
+          <option value="LOCAL">Local</option>
           <option value="DOMICILIO">Domicilio</option>
-          <option value="ONLINE">Online</option>
+          <option value="APP">App</option>
         </select>
         <input type="text" id="filtroEmpleado" placeholder="Empleado" />
         <button class="btn-agregar-producto" onclick="filtrarVentas()">Filtrar</button>
