@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SWEETFIT - Panel</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="container">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="logo-container">
+      <button class="toggle-btn" id="toggleSidebar">☰</button>
+      <img src="img/deleite.png" alt="Logo Sweetfit" class="logo-img" />
+    </div>
+
+    <div class="menu">
+      <a href="#" data-page="panel.html"><span>🏠</span> <span class="text">Panel</span></a>
+      <a href="#" data-page="productos.html"><span>📋</span> <span class="text">Productos</span></a>
+      <a href="#" data-page="ventas.html"><span>🧾</span> <span class="text">Ventas</span></a>
+      <a href="#" data-page="clientes.html"><span>👥</span> <span class="text">Clientes</span></a>
+      <a href="#" data-page="proveedores.html"><span>📦</span> <span class="text">Proveedores</span></a>
+      <a href="#" data-page="configuracion.html"><span>⚙️</span> <span class="text">Configuración</span></a>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <h2 id="titulo-vista">Panel Principal</h2>
+      <div>👤 Administración</div>
+    </div>
+
+    <!-- Contenido dinámico -->
+    <div id="content-area">
+      <!-- Aquí se cargan las vistas desde /views -->
+    </div>
+  </div>
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
