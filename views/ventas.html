@@ -1,0 +1,115 @@
+<div class="ventas-contenedor">
+    <!-- Formulario Nueva Venta -->
+    <div class="formulario-venta">
+      <h2>Registrar Nueva Venta</h2>
+      <form id="formVenta">
+        
+        <!-- Información del cliente -->
+        <fieldset class="grupo-cliente">
+          <legend>Datos del Cliente (opcional para factura)</legend>
+          <div class="grid-form">
+            <input type="text" name="nombre_cliente" placeholder="Nombre(s) del cliente" />
+            <input type="text" name="apellido_paterno" placeholder="Apellido paterno" />
+            <input type="text" name="apellido_materno" placeholder="Apellido materno" />
+            <input type="text" name="direccion" placeholder="Dirección" />
+            <input type="tel" name="telefono" placeholder="Teléfono (10 dígitos)" pattern="[0-9]{10}" />
+          </div>
+        </fieldset>
+  
+        <!-- Información general de la venta -->
+        <div class="grid-form">
+          <input type="text" placeholder="Empleado" name="empleado" required />
+          <select name="tipo_venta" required>
+            <option value="">Tipo de Venta</option>
+            <option value="MOSTRADOR">Mostrador</option>
+            <option value="DOMICILIO">Domicilio</option>
+            <option value="ONLINE">Online</option>
+          </select>
+        </div>
+  
+        <button type="button" class="btn-agregar-producto" onclick="abrirModalProductos()">Seleccionar Productos</button>
+  
+        <!-- Tabla carrito -->
+        <table class="lista-productos-seleccionados" id="tablaCarrito">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio</th>
+              <th>Subtotal</th>
+              <th>Eliminar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- los productos agregados dinámicamente ando viendo si los jalo de productos.html 
+             o hacer uno nuevo, ahi veremos -->
+          </tbody>
+        </table>
+  
+        <div class="footer-venta">
+          <strong>Total: $<span id="totalVenta">0.00</span></strong>
+          <button type="submit" class="btn-agregar-producto">Registrar Venta</button>
+        </div>
+      </form>
+    </div>
+  
+    <!-- Historial de ventas -->
+    <div class="historial-ventas">
+      <h3>Historial de Ventas</h3>
+  
+      <div>
+        <input type="date" id="filtroFechaInicio" />
+        <input type="date" id="filtroFechaFin" />
+        <select id="filtroTipo">
+          <option value="">Todos los Tipos</option>
+          <option value="MOSTRADOR">Mostrador</option>
+          <option value="DOMICILIO">Domicilio</option>
+          <option value="ONLINE">Online</option>
+        </select>
+        <input type="text" id="filtroEmpleado" placeholder="Empleado" />
+        <button class="btn-agregar-producto" onclick="filtrarVentas()">Filtrar</button>
+      </div>
+  
+      <div>
+        <table id="tablaVentas" class="lista-productos-seleccionados">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Empleado</th>
+              <th>Total</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- los registros de aqui seran dinamicos tengo la idea de este en un futuro solo se
+             muestre al administrador un empleado de mostrador no podra verlo -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para seleccionar productos -->
+  <div class="modal-productos" id="modalSeleccionarProductos">
+    <div class="modal-productos-contenido">
+      <span class="cerrar-modal" onclick="cerrarModalProductos()">&times;</span>
+      <input type="text" id="buscador-modal" placeholder="Buscar producto..." />
+      <div class="grid-modal-productos" id="gridModalProductos">
+        <!-- estas tarjetas de productos seran cargadas con JS -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal Detalle de Venta -->
+  <div class="modal-productos" id="modalDetalleVenta">
+    <div class="modal-productos-contenido">
+      <span class="cerrar-modal" onclick="cerrarModalDetalleVenta()">&times;</span>
+      <h3>Detalle de Venta</h3>
+      <div id="detalleVentaContenido">
+        <!-- este se cargara de la base de datos-->
+      </div>
+    </div>
+  </div>
+  
