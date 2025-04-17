@@ -305,6 +305,130 @@ def obtener_historial_compras(id_cliente):
         return jsonify({'error': str(err)}), 500
 # __________________________________________________________________________________________________________________________________
 
+# ESTOS ENDPOINTS PERTENECEN A PROVEEDORES.HTML __________________________________________________________________________________________
+# Obtener proveedores
+@app.route('/api/proveedores', methods=['GET'])
+def obtener_proveedores():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM proveedor")
+        proveedores = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(proveedores)
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+
+# Agregar proveedor
+@app.route('/api/proveedores', methods=['POST'])
+def agregar_proveedor():
+    try:
+        data = request.json
+        nombre = data.get('NOMBRE')
+        email = data.get('EMAIL')
+        telefono = data.get('TELEFONO')
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        query = "INSERT INTO proveedor (NOMBRE, EMAIL, TELEFONO) VALUES (%s, %s, %s)"
+        cursor.execute(query, (nombre, email, telefono))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+
+# Registrar una compra
+@app.route('/api/compras', methods=['POST'])
+def registrar_compra():
+    try:
+        data = request.json
+        proveedor_id = data.get('proveedor')
+        empleado_id = data.get('empleado')
+        productos = data.get('productos')
+
+        if not proveedor_id or not productos or not empleado_id:
+            return jsonify({'error': 'Faltan datos de proveedor, empleado o productos'}), 400
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "INSERT INTO compra (ID_PROVEEDOR, ID_EMPLEADO, TOTAL_COMPRA) VALUES (%s, %s, %s)",
+            (proveedor_id, empleado_id, 0)  # Total temporal
+        )
+        id_compra = cursor.lastrowid
+
+        total = 0
+        for prod in productos:
+            id_producto = prod['id']
+            cantidad = prod['cantidad']
+
+            cursor.execute("SELECT PRECIO FROM producto WHERE ID_PRODUCTO = %s", (id_producto,))
+            precio = cursor.fetchone()[0]
+            subtotal = float(precio) * cantidad
+            total += subtotal
+
+            cursor.execute("""
+                INSERT INTO detalle_compra (ID_COMPRA, ID_PRODUCTO, CANTIDAD_COMPRA, SUBTOTAL_COMPRA)
+                VALUES (%s, %s, %s, %s)
+            """, (id_compra, id_producto, cantidad, subtotal))
+
+            # Actualizar inventario
+            cursor.execute("""
+                UPDATE producto SET CANTIDAD = CANTIDAD + %s WHERE ID_PRODUCTO = %s
+            """, (cantidad, id_producto))
+
+        # Actualizar total final
+        cursor.execute("UPDATE compra SET TOTAL_COMPRA = %s WHERE ID_COMPRA = %s", (total, id_compra))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+
+# Obtener historial de compras
+@app.route('/api/compras', methods=['GET'])
+def historial_compras_proveedores():
+    try:
+        fecha = request.args.get('fecha')
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT C.ID_COMPRA, C.FECHA_COMPRA, C.TOTAL_COMPRA, P.NOMBRE AS NOMBRE_PROVEEDOR
+        FROM compra C
+        JOIN proveedor P ON C.ID_PROVEEDOR = P.ID_PROVEEDOR
+        """
+        if fecha:
+            query += " WHERE DATE(C.FECHA_COMPRA) = %s ORDER BY C.FECHA_COMPRA DESC"
+            cursor.execute(query, (fecha,))
+        else:
+            query += " ORDER BY C.FECHA_COMPRA DESC"
+            cursor.execute(query)
+
+        compras = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return jsonify([
+            {
+                'id_compra': c['ID_COMPRA'],
+                'fecha': c['FECHA_COMPRA'],
+                'total': float(c['TOTAL_COMPRA']),
+                'nombre_proveedor': c['NOMBRE_PROVEEDOR']
+            } for c in compras
+        ])
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+# __________________________________________________________________________________________________________________________________
 
 # Ruta de prueba
 @app.route('/api/test')
