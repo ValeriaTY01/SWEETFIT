@@ -95,10 +95,14 @@
   <div class="modal-productos" id="modalSeleccionarProductos">
     <div class="modal-productos-contenido">
       <span class="cerrar-modal" onclick="cerrarModalProductos()">&times;</span>
-      <input type="text" id="buscador-modal" placeholder="Buscar producto..." />
+      <h3 class="titulo-modal">Selecciona los productos</h3>
+      <input type="text" id="buscador-modal" placeholder="🔍 Buscar producto..." />
       <div class="grid-modal-productos" id="gridModalProductos">
         <!-- estas tarjetas de productos seran cargadas con JS -->
       </div>
+      <div class="contenedor-paginacion-modal">
+        <div id="paginacionModalProductos" class="paginacion-modal-productos"></div>
+      </div>      
     </div>
   </div>
   

@@ -1,7 +1,3 @@
-// VARIABLES GLOBALES PARA PAGINACIÓN Y CATEGORÍA
-let categoriaActual = "";
-let paginaActual = 1;
-
 // ANIMACIÓN DE LA BARRA LATERAL
 document.getElementById('toggleSidebar').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('collapsed');
@@ -28,8 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const buscador = document.getElementById("buscador");
           if (buscador) {
             buscador.addEventListener("input", () => {
-              const texto = buscador.value.toLowerCase();
-              filtrarProductosPorNombre(texto);
+              const texto = buscador.value.trim().toLowerCase();
+              cargarProductos(categoriaActual, 1, texto);
             });
           }
         }
@@ -50,6 +46,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadPage("panel.html", "Panel Principal");
 });
+
+// VARIABLES GLOBALES PARA PAGINACIÓN Y CATEGORÍA
+let categoriaActual = "";
+let paginaActual = 1;
 
 // MODAL DE AGREGAR / EDITAR PRODUCTO
 function initProductoModal() {
@@ -150,7 +150,7 @@ function cargarCategorias() {
 }
 
 // CARGA DE PRODUCTOS CON PAGINACIÓN
-function cargarProductos(categoria = categoriaActual, pagina = paginaActual) {
+function cargarProductos(categoria = categoriaActual, pagina = paginaActual, nombreFiltro = "") {
   const grid = document.querySelector(".grid-productos");
   if (!grid) return;
 
@@ -160,6 +160,9 @@ function cargarProductos(categoria = categoriaActual, pagina = paginaActual) {
   let url = `http://localhost:5000/api/productos?page=${pagina}`;
   if (categoria) {
     url += `&categoria=${encodeURIComponent(categoria)}`;
+  }
+  if (nombreFiltro) {
+    url += `&nombre=${encodeURIComponent(nombreFiltro)}`;
   }
 
   fetch(url)
@@ -172,7 +175,7 @@ function cargarProductos(categoria = categoriaActual, pagina = paginaActual) {
       grid.innerHTML = "";
 
       if (productos.length === 0) {
-        grid.innerHTML = "<p style='padding: 1rem;'>No hay productos en esta categoría.</p>";
+        grid.innerHTML = "<p style='padding: 1rem;'>No hay productos que coincidan.</p>";
         renderPaginacion(1, 1, categoria);
         return;
       }
@@ -205,7 +208,7 @@ function cargarProductos(categoria = categoriaActual, pagina = paginaActual) {
               .then(res => res.json())
               .then(response => {
                 if (response.success) {
-                  cargarProductos();
+                  cargarProductos(categoriaActual, paginaActual, document.getElementById("buscador").value);
                 } else {
                   alert("Error al eliminar producto");
                 }
@@ -221,7 +224,7 @@ function cargarProductos(categoria = categoriaActual, pagina = paginaActual) {
         });
       });
 
-      renderPaginacion(totalPaginas, paginaActual, categoria);
+      renderPaginacion(totalPaginas, paginaActual, categoria, nombreFiltro);
     })
     .catch(() => {
       grid.innerHTML = "<p>Error al cargar productos.</p>";
@@ -265,7 +268,7 @@ function editarProducto(id) {
 }
 
 // PAGINACIÓN
-function renderPaginacion(totalPaginas, paginaActual = 1, categoria = "") {
+function renderPaginacion(totalPaginas, paginaActual = 1, categoria = "", nombreFiltro = "") {
   const contenedor = document.getElementById("paginacionProductos");
   if (!contenedor) return;
 
@@ -276,8 +279,132 @@ function renderPaginacion(totalPaginas, paginaActual = 1, categoria = "") {
     btn.textContent = i;
     btn.classList.toggle("activo", i === paginaActual);
     btn.addEventListener("click", () => {
-      cargarProductos(categoria, i);
+      cargarProductos(categoria, i, nombreFiltro);
     });
+    contenedor.appendChild(btn);
+  }
+}
+
+// CARGA DEL MODAL QUE ESTA EN VENTAS PARA MOSTRAR LOS PRODUCTOS A SELECCIONAR
+let paginaModalActual = 1;
+let totalPaginasModal = 1;
+
+function abrirModalProductos(pagina = 1) {
+  const modal = document.getElementById("modalSeleccionarProductos");
+  const grid = document.getElementById("gridModalProductos");
+  const buscador = document.getElementById("buscador-modal");
+
+  modal.style.display = "flex";
+  grid.innerHTML = "<p>Cargando productos...</p>";
+
+  const filtroNombre = buscador.value.trim();
+  fetch(`http://localhost:5000/api/productos?page=${pagina}&nombre=${encodeURIComponent(filtroNombre)}`)
+    .then(res => res.json())
+    .then(data => {
+      const productos = data.productos || [];
+      paginaModalActual = data.pagina_actual;
+      totalPaginasModal = data.total_paginas;
+
+      grid.innerHTML = "";
+
+      if (productos.length === 0) {
+        grid.innerHTML = "<p>No se encontraron productos.</p>";
+        renderPaginacionModal();
+        return;
+      }
+
+      productos.forEach(prod => {
+        const card = document.createElement("div");
+        card.className = "producto-card";
+        card.innerHTML = `
+          <img src="http://localhost:5000/uploads/${prod.imagen}" alt="${prod.nombre}">
+          <h3>${prod.nombre}</h3>
+          <p>Precio: $${parseFloat(prod.precio).toFixed(2)}</p>
+          <p>Stock: ${prod.cantidad}</p>
+          <input type="number" min="1" max="${prod.cantidad}" value="1" id="cantidad-${prod.id}" />
+          <button onclick="agregarProductoAlCarrito(${prod.id}, '${prod.nombre}', ${prod.precio})">Agregar</button>
+        `;
+        grid.appendChild(card);
+      });
+
+      renderPaginacionModal();
+
+      buscador.oninput = () => {
+        abrirModalProductos(1);
+      };
+      
+    });
+}
+
+function cerrarModalProductos() {
+  document.getElementById("modalSeleccionarProductos").style.display = "none";
+}
+
+function agregarProductoAlCarrito(id, nombre, precio) {
+  const cantidadInput = document.getElementById(`cantidad-${id}`);
+  const cantidad = parseInt(cantidadInput.value);
+  const tabla = document.querySelector("#tablaCarrito tbody");
+
+  const yaExiste = Array.from(tabla.children).some(row => row.dataset.id == id);
+  if (yaExiste) {
+    alert("Este producto ya fue agregado.");
+    return;
+  }
+
+  const subtotal = (cantidad * precio).toFixed(2);
+  const row = document.createElement("tr");
+  row.dataset.id = id;
+  row.innerHTML = `
+    <td>${nombre}</td>
+    <td><input type="number" value="${cantidad}" min="1" onchange="actualizarSubtotal(this, ${precio})" /></td>
+    <td>$${precio.toFixed(2)}</td>
+    <td class="subtotal">$${subtotal}</td>
+    <td><button onclick="eliminarProductoDelCarrito(this)">🗑️</button></td>
+  `;
+  tabla.appendChild(row);
+
+  actualizarTotalVenta();
+}
+
+function actualizarSubtotal(input, precio) {
+  const cantidad = parseInt(input.value);
+  const subtotal = (cantidad * precio).toFixed(2);
+  const celdaSubtotal = input.closest("tr").querySelector(".subtotal");
+  celdaSubtotal.textContent = `$${subtotal}`;
+  actualizarTotalVenta();
+}
+
+function eliminarProductoDelCarrito(btn) {
+  const fila = btn.closest("tr");
+  fila.remove();
+  actualizarTotalVenta();
+}
+
+function actualizarTotalVenta() {
+  let total = 0;
+  document.querySelectorAll("#tablaCarrito tbody tr").forEach(row => {
+    const subtotal = row.querySelector(".subtotal").textContent.replace("$", "");
+    total += parseFloat(subtotal);
+  });
+  document.getElementById("totalVenta").textContent = total.toFixed(2);
+}
+
+function renderPaginacionModal() {
+  let contenedor = document.getElementById("paginacionModalProductos");
+  if (!contenedor) {
+    contenedor = document.createElement("div");
+    contenedor.id = "paginacionModalProductos";
+    contenedor.className = "paginacion";
+    document.getElementById("modalSeleccionarProductos").appendChild(contenedor);
+  }
+
+  contenedor.innerHTML = "";
+
+  for (let i = 1; i <= totalPaginasModal; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    btn.classList.toggle("activo", i === paginaModalActual);
+    btn.addEventListener("click", () => abrirModalProductos(i));
     contenedor.appendChild(btn);
   }
 }

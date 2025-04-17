@@ -353,7 +353,8 @@ body {
 }
 
 .paginacion button.activo {
-  background-color: #5e0038;
+  background-color: #333;
+  color: white;
 }
 
 /* CSS de ventas.html*/
@@ -476,7 +477,7 @@ fieldset.grupo-cliente legend {
 }
 
 #buscador-modal {
-  width: 100%;
+  width: 97%;
   padding: 0.8rem;
   margin-bottom: 1rem;
   border: 1px solid #ccc;
@@ -487,6 +488,7 @@ fieldset.grupo-cliente legend {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1rem;
+  padding: 1rem;
 }
 
 .card-producto-modal {
@@ -518,6 +520,51 @@ fieldset.grupo-cliente legend {
   margin-top: 0.5rem;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.contenedor-paginacion-modal {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+}
+
+.paginacion-modal-productos {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.paginacion-modal-productos button {
+  padding: 6px 14px;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  background-color: #f8f8f8;
+  color: #333;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.paginacion-modal-productos button:hover {
+  background-color: #6b004c;
+  color: white;
+}
+
+.paginacion-modal-productos button.activo {
+  background-color: #6b004c;
+  color: white;
+  border-color: #6b004c;
+}
+
+.titulo-modal {
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #6b004c;
+  text-align: center;
 }
 
 /* Historial de ventas */

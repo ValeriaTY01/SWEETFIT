@@ -16,7 +16,7 @@ db_config = {
     'host': 'localhost',
     'port': 3307,
     'user': 'root',
-    'password': '',
+    'password': 'cookie01122004$',
     'database': 'sweetfit'
 }
 
@@ -24,49 +24,73 @@ db_config = {
 @app.route('/api/productos', methods=['GET'])
 def obtener_productos():
     try:
-        page = request.args.get('page', request.args.get('pagina', 1, type=int), type=int)
-        limit = request.args.get('limit', default=6, type=int)
-        offset = (page - 1) * limit
-        categoria = request.args.get('categoria')
+        page = request.args.get('page', type=int)
+        limit = request.args.get('limit', type=int)
+        categoria = request.args.get('categoria', '')
+        nombre = request.args.get('nombre', '').strip().lower()
 
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
 
-        if categoria:
-            cursor.execute("SELECT COUNT(*) FROM producto WHERE categoria = %s", (categoria,))
-        else:
-            cursor.execute("SELECT COUNT(*) FROM producto")
-        total_productos = cursor.fetchone()['COUNT(*)']
+        # Filtros
+        filtros = []
+        valores = []
 
         if categoria:
-            cursor.execute("SELECT * FROM producto WHERE categoria = %s LIMIT %s OFFSET %s", (categoria, limit, offset))
-        else:
-            cursor.execute("SELECT * FROM producto LIMIT %s OFFSET %s", (limit, offset))
+            filtros.append("categoria = %s")
+            valores.append(categoria)
 
-        productos_crudos = cursor.fetchall()
+        if nombre:
+            filtros.append("LOWER(nombre) LIKE %s")
+            valores.append(f"%{nombre}%")
+
+        where_clause = f"WHERE {' AND '.join(filtros)}" if filtros else ""
+
+        # Si se está haciendo una búsqueda, devolver todos sin paginación
+        if nombre:
+            query = f"SELECT * FROM producto {where_clause}"
+            cursor.execute(query, tuple(valores))
+            productos_crudos = cursor.fetchall()
+            total_productos = len(productos_crudos)
+            total_paginas = 1
+            pagina_actual = 1
+        else:
+            # Usar valores por defecto si no vienen
+            page = page or 1
+            limit = limit or 6
+            offset = (page - 1) * limit
+
+            count_query = f"SELECT COUNT(*) FROM producto {where_clause}"
+            cursor.execute(count_query, tuple(valores))
+            total_productos = cursor.fetchone()['COUNT(*)']
+
+            query = f"SELECT * FROM producto {where_clause} LIMIT %s OFFSET %s"
+            cursor.execute(query, (*valores, limit, offset))
+            productos_crudos = cursor.fetchall()
+
+            total_paginas = (total_productos // limit) + (1 if total_productos % limit != 0 else 0)
+            pagina_actual = page
+
         cursor.close()
         conn.close()
 
-        productos = []
-        for p in productos_crudos:
-            productos.append({
-                'id': p['ID_PRODUCTO'],
-                'nombre': p['NOMBRE'],
-                'descripcion': p['DESCRIPCION'],
-                'categoria': p['CATEGORIA'],
-                'cantidad': p['CANTIDAD'],
-                'precio': float(p['PRECIO']),
-                'imagen': p['IMAGEN']
-            })
-
-        total_paginas = (total_productos // limit) + (1 if total_productos % limit != 0 else 0)
+        productos = [ {
+            'id': p['ID_PRODUCTO'],
+            'nombre': p['NOMBRE'],
+            'descripcion': p['DESCRIPCION'],
+            'categoria': p['CATEGORIA'],
+            'cantidad': p['CANTIDAD'],
+            'precio': float(p['PRECIO']),
+            'imagen': p['IMAGEN']
+        } for p in productos_crudos ]
 
         return jsonify({
             'productos': productos,
             'total_productos': total_productos,
             'total_paginas': total_paginas,
-            'pagina_actual': page
+            'pagina_actual': pagina_actual
         })
+
     except mysql.connector.Error as err:
         print("ERROR MYSQL:", err)
         return jsonify({'error': str(err)}), 500
