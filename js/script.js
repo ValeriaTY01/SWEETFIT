@@ -3,7 +3,7 @@ document.getElementById('toggleSidebar').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('collapsed');
 });
 
-// CARGA DE VENTANAS DINÁMICAS
+// ESTA LOGICA PARA LA CARGA DE VENTANAS (productos.html, cliente.html, etc.)_____________________________________
 document.addEventListener("DOMContentLoaded", () => {
   const contentArea = document.getElementById("content-area");
   const links = document.querySelectorAll(".menu a");
@@ -15,12 +15,12 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(html => {
         contentArea.innerHTML = html;
         title.textContent = text;
-
+  
         if (page === "productos.html") {
           initProductoModal();
           cargarCategorias();
           cargarProductos();
-
+  
           const buscador = document.getElementById("buscador");
           if (buscador) {
             buscador.addEventListener("input", () => {
@@ -29,11 +29,29 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         }
+
+        if (page === "cliente.html") {
+          initClienteModal();
+          cargarClientes();
+  
+          const buscadorClientes = document.getElementById("buscadorClientes");
+          if (buscadorClientes) {
+            buscadorClientes.addEventListener("input", () => {
+              const texto = buscadorClientes.value.trim().toLowerCase();
+              document.querySelectorAll(".cliente-card").forEach(card => {
+                const nombre = card.querySelector("h3").textContent.toLowerCase();
+                card.style.display = nombre.includes(texto) ? "block" : "none";
+              });
+            });
+          }
+        }
+  
       })
       .catch(() => {
         contentArea.innerHTML = "<p>Error al cargar la página.</p>";
       });
   }
+  
 
   links.forEach(link => {
     link.addEventListener("click", e => {
@@ -46,12 +64,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadPage("panel.html", "Panel Principal");
 });
+//HASTA AQUI TERMINA LA LOGICA DE LAS VENTANAS DINAMICAS ___________________________________________________________
 
-// VARIABLES GLOBALES PARA PAGINACIÓN Y CATEGORÍA
+// ESTA LOGICA PERTECENE A PRODUCTOS.HTML ___________________________________________________________________________
 let categoriaActual = "";
 let paginaActual = 1;
 
-// MODAL DE AGREGAR / EDITAR PRODUCTO
 function initProductoModal() {
   const btnAbrir = document.querySelector(".btn-agregar-producto");
   const modal = document.getElementById("modalAgregarProducto");
@@ -73,7 +91,6 @@ function initProductoModal() {
       }
     });
 
-    // Vista previa de imagen
     const inputImagen = form.querySelector("input[name='imagen']");
     const preview = document.getElementById("previewImagen");
 
@@ -86,7 +103,6 @@ function initProductoModal() {
       });
     }
 
-    // Manejo del envío del formulario
     form.addEventListener("submit", e => {
       e.preventDefault();
       const formData = new FormData(form);
@@ -95,7 +111,7 @@ function initProductoModal() {
       const url = id
         ? `http://localhost:5000/api/editar_producto/${id}`
         : "http://localhost:5000/api/productos";
-      const method = "POST"; // Para FormData, usamos POST también para edición
+      const method = "POST";
 
       fetch(url, {
         method,
@@ -121,7 +137,6 @@ function initProductoModal() {
   }
 }
 
-// CATEGORÍAS DINÁMICAS
 function cargarCategorias() {
   const contenedor = document.querySelector(".filtros-categorias");
   if (!contenedor) return;
@@ -149,7 +164,6 @@ function cargarCategorias() {
     });
 }
 
-// CARGA DE PRODUCTOS CON PAGINACIÓN
 function cargarProductos(categoria = categoriaActual, pagina = paginaActual, nombreFiltro = "") {
   const grid = document.querySelector(".grid-productos");
   if (!grid) return;
@@ -231,7 +245,6 @@ function cargarProductos(categoria = categoriaActual, pagina = paginaActual, nom
     });
 }
 
-// FILTRO POR NOMBRE
 function filtrarProductosPorNombre(filtro) {
   const cards = document.querySelectorAll(".producto-card");
   cards.forEach(card => {
@@ -240,7 +253,6 @@ function filtrarProductosPorNombre(filtro) {
   });
 }
 
-// EDITAR PRODUCTO
 function editarProducto(id) {
   fetch(`http://localhost:5000/api/producto/${id}`)
     .then(res => res.json())
@@ -267,7 +279,6 @@ function editarProducto(id) {
     });
 }
 
-// PAGINACIÓN
 function renderPaginacion(totalPaginas, paginaActual = 1, categoria = "", nombreFiltro = "") {
   const contenedor = document.getElementById("paginacionProductos");
   if (!contenedor) return;
@@ -284,8 +295,9 @@ function renderPaginacion(totalPaginas, paginaActual = 1, categoria = "", nombre
     contenedor.appendChild(btn);
   }
 }
+//HASTA AQUI TERMINA LA LOGICA PRODUCTOS.HTML ____________________________________________________________________
 
-// CARGA DEL MODAL QUE ESTA EN VENTAS PARA MOSTRAR LOS PRODUCTOS A SELECCIONAR
+// ESTA LOGICA PERTECENE A VENTAS.HTML ___________________________________________________________________________
 let paginaModalActual = 1;
 let totalPaginasModal = 1;
 
@@ -408,3 +420,191 @@ function renderPaginacionModal() {
     contenedor.appendChild(btn);
   }
 }
+//HASTA AQUI TERMINA LA LOGICA VENTAS.HTML ____________________________________________________________________
+
+// ESTA LOGICA PERTECENE A CLIENTE.HTML ___________________________________________________________________________
+function cargarClientes() {
+  const contenedor = document.getElementById("listaClientes");
+  if (!contenedor) return;
+
+    fetch("http://localhost:5000/api/clientes")
+    .then(res => res.json())
+    .then(clientes => {
+      contenedor.innerHTML = "";
+
+      clientes.forEach(cliente => {
+        const div = document.createElement("div");
+        div.className = "cliente-card";
+        div.innerHTML = `
+          <h3>${cliente.NOMBRE} ${cliente.APELLIDO_PATERNO || ''} ${cliente.APELLIDO_MATERNO || ''}</h3>
+          <p><strong>Tel:</strong> ${cliente.TELEFONO || 'N/A'}</p>
+          <p><strong>Dirección:</strong> ${cliente.DIRECCION || 'N/A'}</p>
+          <div class="acciones-cliente">
+            <button class="btn-editar" data-id="${cliente.ID_CLIENTE}">✏️</button>
+            <button class="btn-eliminar" data-id="${cliente.ID_CLIENTE}">🗑️</button>
+            <button class="btn-historial" data-id="${cliente.ID_CLIENTE}">📜 Historial</button>
+          </div>
+        `;
+        contenedor.appendChild(div);
+      });
+
+      document.querySelectorAll(".btn-editar").forEach(btn => {
+        btn.addEventListener("click", () => editarCliente(btn.dataset.id));
+      });
+
+      document.querySelectorAll(".btn-eliminar").forEach(btn => {
+        btn.addEventListener("click", () => eliminarCliente(btn.dataset.id));
+      });
+
+      document.querySelectorAll(".btn-historial").forEach(btn => {
+        btn.addEventListener("click", () => mostrarHistorialCliente(btn.dataset.id));
+      });
+    })
+    .catch(err => {
+      console.error("Error al cargar clientes:", err);
+    });
+}
+
+function initClienteModal() {
+  const modal = document.getElementById("modalCliente");
+  const cerrar = document.getElementById("cerrarModalCliente");
+  const form = document.getElementById("formCliente");
+
+  if (!modal || !cerrar || !form) {
+    console.warn("⚠️ Elementos del modal no encontrados");
+    return;
+  }
+
+  cerrar.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
+
+  window.addEventListener("click", e => {
+    if (e.target === modal) modal.style.display = "none";
+  });
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    fetch("http://localhost:5000/api/clientes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    })
+      .then(res => res.json())
+      .then(response => {
+        if (response.success) {
+          modal.style.display = "none";
+          cargarClientes();
+        } else {
+          alert("Error al guardar cliente");
+        }
+      });
+  });
+}
+
+function editarCliente(id) {
+  alert("Sigan viendo" + id);
+}
+
+function eliminarCliente(id) {
+  if (confirm("¿Deseas eliminar este cliente?")) {
+    fetch(`http://localhost:5000/api/clientes/${id}`, { method: "DELETE" })
+      .then(res => res.json())
+      .then(response => {
+        if (response.success) {
+          cargarClientes();
+        } else {
+          alert("Error al eliminar");
+        }
+      });
+  }
+}
+
+function abrirModalCliente() {
+  const modal = document.getElementById("modalCliente");
+  document.getElementById("formCliente").reset();
+  modal.style.display = "flex";
+}
+
+function cerrarModalCliente() {
+  const modal = document.getElementById("modalCliente");
+  modal.style.display = "none";
+}
+
+function mostrarHistorialCliente(idCliente) {
+  const panel = document.getElementById("historialPanel");
+  const contenedor = document.getElementById("contenidoHistorial");
+
+  contenedor.style.opacity = 0;
+
+  setTimeout(() => {
+    contenedor.innerHTML = '';
+
+    fetch(`http://localhost:5000/api/clientes/${idCliente}/historial`)
+      .then(res => res.json())
+      .then(historial => {
+        if (Array.isArray(historial)) {
+          historial.forEach(venta => {
+            const ventaDiv = document.createElement("div");
+            ventaDiv.className = "venta-item";
+
+            let tipoColor = "";
+            let tipoIcono = "";
+            switch (venta.TIPO_VENTA) {
+              case "Local":
+                tipoColor = "#4CAF50";
+                tipoIcono = "🏪";
+                break;
+              case "Domicilio":
+                tipoColor = "#2196F3";
+                tipoIcono = "🏠";
+                break;
+              case "App":
+                tipoColor = "#9C27B0";
+                tipoIcono = "📱";
+                break;
+              default:
+                tipoColor = "#999";
+                tipoIcono = "❓";
+            }
+
+            ventaDiv.innerHTML = `
+              <p><strong>Fecha:</strong> ${new Date(venta.FECHA_VENTA).toLocaleString()}</p>
+              <p><strong>Total:</strong> $${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</p>
+              <p><strong>Tipo:</strong> <span style="color:${tipoColor}; font-weight: bold;">${tipoIcono} ${venta.TIPO_VENTA}</span></p>
+              <hr>
+            `;
+
+            contenedor.appendChild(ventaDiv);
+          });
+
+          contenedor.style.opacity = 1;
+        } else {
+          contenedor.innerHTML = `<p>No se encontraron ventas para este cliente.</p>`;
+          contenedor.style.opacity = 1;
+        }
+
+      abrirHistorialCliente();
+    })
+    .catch(err => {
+      console.error("Error al cargar el historial:", err);
+      contenedor.innerHTML = `<p>Error al cargar el historial.</p>`;
+      contenedor.style.opacity = 1;
+      abrirHistorialCliente();
+    });
+  }, 50);
+}
+
+function abrirHistorialCliente() {
+  const panel = document.getElementById("historialPanel");
+  panel.style.right = "0";
+}
+
+function cerrarHistorialCliente() {
+  const panel = document.getElementById("historialPanel");
+  panel.style.right = "-100%";
+}
+//HASTA AQUI TERMINA LA LOGICA CLIENTE.HTML ____________________________________________________________________

@@ -20,6 +20,8 @@ db_config = {
     'database': 'sweetfit'
 }
 
+# ESTOS ENDPOINTS PERTENECEN A PRODUCTOS.HTML Y VENTAS.HTML___________________________________________________
+
 # Ruta para obtener todos los productos
 @app.route('/api/productos', methods=['GET'])
 def obtener_productos():
@@ -32,7 +34,6 @@ def obtener_productos():
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
 
-        # Filtros
         filtros = []
         valores = []
 
@@ -46,7 +47,6 @@ def obtener_productos():
 
         where_clause = f"WHERE {' AND '.join(filtros)}" if filtros else ""
 
-        # Si se está haciendo una búsqueda, devolver todos sin paginación
         if nombre:
             query = f"SELECT * FROM producto {where_clause}"
             cursor.execute(query, tuple(valores))
@@ -55,7 +55,6 @@ def obtener_productos():
             total_paginas = 1
             pagina_actual = 1
         else:
-            # Usar valores por defecto si no vienen
             page = page or 1
             limit = limit or 6
             offset = (page - 1) * limit
@@ -123,12 +122,10 @@ def agregar_producto():
         if not imagen_file:
             return jsonify({'error': 'Imagen requerida'}), 400
 
-        # Guardar imagen
         filename = secure_filename(imagen_file.filename)
         ruta_imagen = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         imagen_file.save(ruta_imagen)
 
-        # Guardar en la base de datos (guardamos solo el nombre de la imagen)
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
         query = """INSERT INTO producto 
@@ -162,7 +159,7 @@ def eliminar_producto(id_producto):
     except mysql.connector.Error as err:
         return jsonify({'success': False, 'error': str(err)}), 500
 
-# Editar producto (opcionalmente actualizar imagen)
+# Editar producto (actualizar imagen)
 @app.route('/api/editar_producto/<int:id_producto>', methods=['PUT'])
 def editar_producto(id_producto):
     try:
@@ -228,6 +225,86 @@ def obtener_producto_por_id(id_producto):
             return jsonify({'error': 'Producto no encontrado'}), 404
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
+    
+
+# ESTOS ENDPOINTS PERTENECEN A CLIENTE.HTML __________________________________________________________________________________________
+# Ruta para obtener todos los clientes
+@app.route('/api/clientes', methods=['GET'])
+def obtener_clientes():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM cliente")
+        clientes = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(clientes)
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+    
+# ruta para agregar clientes
+@app.route('/api/clientes', methods=['POST'])
+def agregar_cliente():
+    try:
+        data = request.json
+        nombre = data.get('nombre')
+        apellido_paterno = data.get('apellido_paterno')
+        apellido_materno = data.get('apellido_materno')
+        direccion = data.get('direccion')
+        telefono = data.get('telefono')
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        query = "INSERT INTO cliente (nombre, apellido_paterno, apellido_materno, direccion, telefono) VALUES (%s, %s, %s, %s, %s)"
+        cursor.execute(query, (nombre, apellido_paterno, apellido_materno, direccion, telefono))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'error': str(err)}), 500
+    
+# Ruta para eliminar clientes
+@app.route('/api/clientes/<int:id_cliente>', methods=['DELETE'])
+def eliminar_cliente(id_cliente):
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM cliente WHERE id_cliente = %s", (id_cliente,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'error': str(err)}), 500
+    
+# Ruta para obtener el historial de venntas por cada cliente
+@app.route('/api/clientes/<int:id_cliente>/historial', methods=['GET'])
+def obtener_historial_compras(id_cliente):
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT V.ID_VENTA, V.TIPO_VENTA, V.TOTAL_VENTA, V.FECHA_VENTA
+        FROM VENTA V
+        WHERE V.ID_CLIENTE = %s
+        """
+        cursor.execute(query, (id_cliente,))
+        historial = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        if historial:
+            return jsonify(historial)
+        else:
+            return jsonify({'message': 'No se encontraron ventas para este cliente.'}), 404
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+# __________________________________________________________________________________________________________________________________
+
 
 # Ruta de prueba
 @app.route('/api/test')
