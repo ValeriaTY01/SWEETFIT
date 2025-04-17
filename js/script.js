@@ -3,7 +3,7 @@ document.getElementById('toggleSidebar').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('collapsed');
 });
 
-// ESTA LOGICA PARA LA CARGA DE VENTANAS (productos.html, cliente.html, etc.)_____________________________________
+// ESTA LOGICA ES PARA LA CARGA DE VENTANAS (productos.html, cliente.html, etc.)_____________________________________
 document.addEventListener("DOMContentLoaded", () => {
   const contentArea = document.getElementById("content-area");
   const links = document.querySelectorAll(".menu a");
@@ -45,14 +45,28 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         }
-  
+
+        if (page === "proveedor.html") {
+          initProveedorModal();
+          cargarProveedores();
+          cargarProductosProveedor();
+          cargarHistorialCompras();
+        
+          document.querySelector(".btn-agregar-proveedor")?.addEventListener("click", abrirModalProveedor);
+          document.querySelector(".btn-nueva-compra")?.addEventListener("click", abrirModalCompra);
+          document.getElementById("formCompra")?.addEventListener("submit", guardarCompra);
+          document.getElementById("filtroFecha")?.addEventListener("change", cargarHistorialCompras);
+          document.getElementById("buscadorProveedores")?.addEventListener("input", e => {
+            const texto = e.target.value.toLowerCase();
+            mostrarProveedores(listaProveedores.filter(p => p.nombre.toLowerCase().includes(texto)));
+          });
+        }        
       })
       .catch(() => {
         contentArea.innerHTML = "<p>Error al cargar la página.</p>";
       });
   }
   
-
   links.forEach(link => {
     link.addEventListener("click", e => {
       e.preventDefault();
@@ -608,3 +622,194 @@ function cerrarHistorialCliente() {
   panel.style.right = "-100%";
 }
 //HASTA AQUI TERMINA LA LOGICA CLIENTE.HTML ____________________________________________________________________
+
+// ESTA LÓGICA PERTENECE A PROVEEDORES.HTML ____________________________________________________________________
+
+let listaProveedores = [];
+let productosDisponibles = [];
+let productosCompra = [];
+
+function initProveedorModal() {
+  const modalProveedor = document.getElementById("modalProveedor");
+  const cerrar = document.getElementById("cerrarModalProveedor");
+  const form = document.getElementById("formProveedor");
+
+  if (!modalProveedor || !cerrar || !form) return;
+
+  cerrar.addEventListener("click", () => {
+    modalProveedor.style.display = "none";
+  });
+
+  window.addEventListener("click", e => {
+    if (e.target === modalProveedor) modalProveedor.style.display = "none";
+  });
+
+  form.addEventListener("submit", guardarProveedor);
+}
+
+function abrirModalProveedor() {
+  const modal = document.getElementById("modalProveedor");
+  document.getElementById("formProveedor").reset();
+  modal.style.display = "flex";
+}
+
+function guardarProveedor(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form));
+
+  fetch("http://localhost:5000/api/proveedores", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+    .then(res => res.json())
+    .then(() => {
+      document.getElementById("modalProveedor").style.display = "none";
+      cargarProveedores();
+    });
+}
+
+function cargarProveedores() {
+  fetch("http://localhost:5000/api/proveedores")
+    .then(res => res.json())
+    .then(data => {
+      listaProveedores = data;
+      mostrarProveedores(data);
+      cargarSelectProveedores(data);
+    });
+}
+
+function mostrarProveedores(proveedores) {
+  const tbody = document.getElementById("listaProveedores");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  proveedores.forEach(prov => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${prov.NOMBRE}</td>
+      <td>${prov.EMAIL}</td>
+      <td>${prov.TELEFONO}</td>
+      <td><button onclick="verHistorial(${prov.ID_PROVEEDOR})">📜 Historial</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function cargarSelectProveedores(proveedores) {
+  const select = document.getElementById("proveedorSelect");
+  if (!select) return;
+
+  select.innerHTML = "<option value=''>Selecciona proveedor</option>";
+  proveedores.forEach(p => {
+    const option = document.createElement("option");
+    option.value = p.ID_PROVEEDOR;
+    option.textContent = p.NOMBRE;
+    select.appendChild(option);
+  });
+}
+
+function cargarProductosProveedor() {
+  fetch("http://localhost:5000/api/productos")
+    .then(res => res.json())
+    .then(data => {
+      productosDisponibles = data;
+      const select = document.getElementById("productoSelect");
+      if (!select) return;
+
+      select.innerHTML = "<option value=''>Selecciona producto</option>";
+      data.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.nombre;
+        select.appendChild(opt);
+      });
+    });
+}
+
+function abrirModalCompra() {
+  document.getElementById("modalCompra").style.display = "flex";
+  productosCompra = [];
+  actualizarListaProductosCompra();
+}
+
+function cerrarModalCompra() {
+  document.getElementById("modalCompra").style.display = "none";
+  document.getElementById("formCompra").reset();
+}
+
+function agregarProductoCompra() {
+  const productoId = document.getElementById("productoSelect").value;
+  const cantidad = parseInt(document.getElementById("cantidadProducto").value);
+  if (!productoId || isNaN(cantidad) || cantidad <= 0) return alert("Completa producto y cantidad");
+
+  const producto = productosDisponibles.find(p => p.id == productoId);
+  productosCompra.push({ ...producto, cantidad });
+  actualizarListaProductosCompra();
+}
+
+function actualizarListaProductosCompra() {
+  const contenedor = document.getElementById("listaProductosCompra");
+  contenedor.innerHTML = "";
+  productosCompra.forEach(prod => {
+    const div = document.createElement("div");
+    div.textContent = `${prod.nombre} - ${prod.cantidad} unidades`;
+    contenedor.appendChild(div);
+  });
+}
+
+function guardarCompra(e) {
+  e.preventDefault();
+  const proveedorId = document.getElementById("proveedorSelect").value;
+  if (!proveedorId || productosCompra.length === 0) return alert("Selecciona proveedor y agrega productos");
+
+  // Aquí se debera obtener el ID del empleado cuando se haga el login
+  const empleadoId = obtenerEmpleadoLogueado();
+
+  const data = {
+    proveedor: proveedorId,
+    empleado: empleadoId,
+    productos: productosCompra
+  };
+
+  fetch("http://localhost:5000/api/compras", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+    .then(res => res.json())
+    .then(() => {
+      cerrarModalCompra();
+      cargarHistorialCompras();
+    });
+}
+
+function cargarHistorialCompras() {
+  const fecha = document.getElementById("filtroFecha").value;
+  let url = "http://localhost:5000/api/compras";
+  if (fecha) url += `?fecha=${fecha}`;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const contenedor = document.getElementById("tablaHistorialCompras");
+      contenedor.innerHTML = "";
+      data.forEach(compra => {
+        const div = document.createElement("div");
+        div.className = "compra-item";
+        div.innerHTML = `
+          <p><strong>Proveedor:</strong> ${compra.nombre_proveedor}</p>
+          <p><strong>Fecha:</strong> ${compra.fecha}</p>
+          <p><strong>Total:</strong> $${parseFloat(compra.total).toFixed(2)}</p>
+        `;
+        contenedor.appendChild(div);
+      });
+    });
+}
+// FIN DE LÓGICA DE PROVEEDORES ______________________________________________________________________
+
+
+// ESTA LÓGICA PERTENECERA FUTURAMENTE AL LOGIN ______________________________________________________
+function obtenerEmpleadoLogueado() {
+  return 1; // este valor solo es de prueba
+}
