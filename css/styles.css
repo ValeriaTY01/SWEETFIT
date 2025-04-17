@@ -1,4 +1,4 @@
-/* CSS de index.html*/
+/* ======== ESTILOS DE LA INTERFAZ DEL INDEX ======== */
 body {
     margin: 0;
     font-family: 'Poppins', sans-serif;
@@ -112,7 +112,7 @@ body {
   }
 /* _____________________________________________________________________________*/
   
-/* CSS de panel.html*/
+/* ======== ESTILOS DE LA INTERFAZ DEL PANEL ======== */
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -147,7 +147,7 @@ body {
   }
 /* _____________________________________________________________________________*/
 
-/* CSS de productos.html*/
+/* ======== ESTILOS DE LA INTERFAZ DE PRODUCTOS ======== */
 .productos-header {
   display: flex;
   justify-content: space-between;
@@ -255,7 +255,6 @@ body {
   background-color: #f2f2f2;
 }
 
-/* Ventana flotante */
 .modal {
   display: none;
   position: fixed;
@@ -360,7 +359,7 @@ body {
 }
 /* _____________________________________________________________________________*/
 
-/* CSS de ventas.html*/
+/* ======== ESTILOS DE LA INTERFAZ DE VENTS ======== */
 .ventas-contenedor {
   display: flex;
   flex-direction: column;
@@ -602,7 +601,7 @@ fieldset.grupo-cliente legend {
 }
 /* _____________________________________________________________________________*/
 
-/* CSS de clientes.html*/
+/* ======== ESTILOS DE LA INTERFAZ DE CLIENTES ======== */
 .clientes-container {
   padding: 20px;
 }
@@ -776,5 +775,230 @@ fieldset.grupo-cliente legend {
 
 #contenidoHistorial {
   opacity: 1;
+}
+/* _____________________________________________________________________________*/
+
+/* ======== ESTILOS DE LA INTERFAZ DE PROVEEDORES ======== */
+.proveedores-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.acciones-proveedor {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-agregar-proveedor,
+.btn-nueva-compra,
+.btn-guardar-compra {
+  background-color: #880e4f;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-agregar-proveedor:hover,
+.btn-nueva-compra:hover,
+.btn-guardar-compra:hover {
+  background-color: #a6005c;
+}
+
+.tabla-proveedores {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+.tabla-proveedores th,
+.tabla-proveedores td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.tabla-proveedores thead {
+  background-color: #6B004C;
+  color: white;
+}
+
+.tabla-proveedores tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.tabla-proveedores .acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tabla-proveedores .acciones span {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+}
+
+.tabla-proveedores .acciones span:hover {
+  background-color: #f2f2f2;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-contenido {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+.modal-contenido.grande {
+  max-width: 800px;
+}
+
+.cerrar-modal {
+  position: absolute;
+  top: 10px; right: 15px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal form input,
+.modal form select,
+.modal form textarea {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+#listaProductosCompra {
+  margin-top: 1rem;
+  background: #f4f4f4;
+  padding: 1rem;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#listaProductosCompra div {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 4px;
+}
+
+.historial-compras {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #fdf7ff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.historial-compras h3 {
+  font-size: 1.6em;
+  color: #730083;
+  margin-bottom: 15px;
+}
+
+.historial-compras {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #fdf7ff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.historial-compras h3 {
+  font-size: 1.6em;
+  color: #730083;
+  margin-bottom: 15px;
+}
+
+.filtro-fecha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.tarjetas-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.tarjeta-compra {
+  background-color: #fff;
+  border-left: 5px solid #730083;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.tarjeta-compra p {
+  margin: 5px 0;
+  color: #333;
+  font-size: 0.95em;
+}
+
+.tarjeta-compra p strong {
+  color: #730083;
+}
+
+#tablaHistorialCompras table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+#tablaHistorialCompras th,
+#tablaHistorialCompras td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+#tablaHistorialCompras thead {
+  background-color: #6B004C;
+  color: white;
+}
+
+#buscadorProveedores {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  width: 300px;
+  max-width: 100%;
 }
 /* _____________________________________________________________________________*/
