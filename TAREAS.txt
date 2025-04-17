@@ -1,0 +1,8 @@
+******************* PRODUCTOS.HTML ****************************
+1.- Falta activar o conectar el boton de editar ✏️ los productos
+
+************************ VENTAS.HTML **************************
+1.- Falta conectar el historial de ventas, que se logre visualizar
+2.- Tambien tenia pensando que cuando se quiera registrar un cliente y este ya se encuentre en la base de datos
+    que recupere sus datos.
+
