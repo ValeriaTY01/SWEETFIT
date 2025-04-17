@@ -1,0 +1,70 @@
+<div class="proveedores-header">
+  <div class="acciones-proveedor">
+    <input type="text" id="buscadorProveedores" placeholder="🔍 Buscar proveedor..." />
+    <button class="btn-agregar-proveedor">➕ Agregar Proveedor</button>
+    <button class="btn-nueva-compra">🛒 Nueva Compra</button>
+  </div>
+</div>
+
+<table class="tabla-proveedores">
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Email</th>
+      <th>Teléfono</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody id="listaProveedores">
+    <!-- Aquí se insertarán dinámicamente los proveedores -->
+  </tbody>
+</table>
+
+<div class="modal" id="modalProveedor">
+  <div class="modal-contenido">
+    <span class="cerrar-modal" onclick="cerrarModalProveedor()">×</span>
+    <h3>Agregar Proveedor</h3>
+    <form id="formProveedor">
+      <input type="text" name="nombre" placeholder="Nombre del proveedor" required />
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="text" name="telefono" placeholder="Teléfono" />
+      <button type="submit">Guardar</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="modalCompra">
+  <div class="modal-contenido grande">
+    <span class="cerrar-modal" onclick="cerrarModalCompra()">×</span>
+    <h3>Nueva Compra</h3>
+    <form id="formCompra">
+      <label for="proveedorSelect">Proveedor:</label>
+      <select id="proveedorSelect" name="proveedor" required></select>
+
+      <label for="productoSelect">Producto:</label>
+      <select id="productoSelect" name="producto">
+        <!-- Productos desde la BD -->
+      </select>
+
+      <input type="number" id="cantidadProducto" name="cantidad" placeholder="Cantidad" min="1" />
+      <button type="button" onclick="agregarProductoCompra()">Agregar a compra</button>
+
+      <div id="listaProductosCompra">
+        <!-- Productos agregados a la compra -->
+      </div>
+
+      <button type="submit" class="btn-guardar-compra">💾 Guardar Compra</button>
+    </form>
+  </div>
+</div>
+
+<div class="historial-compras">
+  <h3>📜 Historial de Compras</h3>
+  <div class="filtro-fecha">
+    <label for="filtroFecha">📅 Filtrar por fecha:</label>
+    <input type="date" id="filtroFecha" />
+  </div>
+  <div id="tablaHistorialCompras" class="tarjetas-historial">
+    <!-- Aquí se mostrarán las compras realizadas -->
+  </div>
+</div>
