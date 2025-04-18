@@ -225,7 +225,8 @@ def obtener_producto_por_id(id_producto):
             return jsonify({'error': 'Producto no encontrado'}), 404
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
-
+    
+# ESTOS ENDPOINTS PERTENECEN A VENTAS.HTML___________________________________________________
 @app.route('/api/ventas', methods=['GET'])
 def obtener_ventas():
     try:

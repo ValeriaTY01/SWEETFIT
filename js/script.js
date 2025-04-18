@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (page === "ventas.html") {
           cargarHistorialVentas();
+          cargarSelectEmpleados(); 
         }        
 
         if (page === "cliente.html") {
@@ -466,6 +467,55 @@ function cargarHistorialVentas() {
     })    
     .catch(err => {
       console.error("Error al cargar historial:", err);
+    });
+}
+
+function filtrarVentas() {
+  const fechaInicio = document.getElementById("filtroFechaInicio").value;
+  const fechaFin = document.getElementById("filtroFechaFin").value;
+  const tipoVenta = document.getElementById("filtroTipo").value;
+  const idEmpleado = document.getElementById("selectEmpleado").value;
+
+  let url = `http://localhost:5000/api/ventas/historial?`;
+
+  if (fechaInicio && fechaFin) {
+    url += `fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}&`;
+  }
+
+  if (tipoVenta) {
+    url += `tipo_venta=${tipoVenta}&`;
+  }
+
+  if (idEmpleado) {
+    url += `empleado=${idEmpleado}&`;
+  }
+
+  fetch(url)
+    .then(res => res.json())
+    .then(ventas => {
+      const tabla = document.querySelector("#tablaVentas tbody");
+      tabla.innerHTML = "";
+
+      if (!ventas || ventas.length === 0) {
+        tabla.innerHTML = "<tr><td colspan='6'>No se encontraron ventas.</td></tr>";
+        return;
+      }
+
+      ventas.forEach(venta => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${venta.ID_VENTA}</td>
+          <td>${new Date(venta.FECHA_VENTA).toLocaleString()}</td>
+          <td>${venta.TIPO_VENTA}</td>
+          <td>${venta.nombre_empleado || '—'}</td>
+          <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
+          <td><button class="btn-ticket" onclick="verDetalleVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
+        `;
+        tabla.appendChild(row);
+      });
+    })
+    .catch(err => {
+      console.error("Error al filtrar ventas:", err);
     });
 }
 
