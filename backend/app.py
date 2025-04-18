@@ -225,7 +225,83 @@ def obtener_producto_por_id(id_producto):
             return jsonify({'error': 'Producto no encontrado'}), 404
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
+
+@app.route('/api/ventas', methods=['GET'])
+def obtener_ventas():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT 
+                v.ID_VENTA,
+                v.FECHA_VENTA,
+                v.TIPO_VENTA,
+                v.TOTAL_VENTA,
+                CONCAT(e.NOMBRE, ' ', e.APELLIDOS) AS EMPLEADO,
+                CONCAT(c.NOMBRE, ' ', c.APELLIDO_PATERNO) AS CLIENTE
+            FROM venta v
+            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
+            LEFT JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
+            ORDER BY v.FECHA_VENTA DESC
+        """
+        cursor.execute(query)
+        ventas = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+        return jsonify(ventas)
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
     
+# Obtener historial de ventas con filtros
+@app.route('/api/ventas/historial', methods=['GET'])
+def historial_ventas():
+    try:
+        fecha_inicio = request.args.get('fecha_inicio')
+        fecha_fin = request.args.get('fecha_fin')
+        tipo_venta = request.args.get('tipo_venta')
+        id_empleado = request.args.get('empleado')
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT v.ID_VENTA, v.FECHA_VENTA, v.TOTAL_VENTA, v.TIPO_VENTA,
+                   c.NOMBRE AS nombre_cliente,
+                   e.NOMBRE AS nombre_empleado
+            FROM venta v
+            LEFT JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
+            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
+            WHERE 1=1
+        """
+        params = []
+
+        if fecha_inicio and fecha_fin:
+            query += " AND v.FECHA_VENTA BETWEEN %s AND %s"
+            params.extend([fecha_inicio, fecha_fin])
+
+        if tipo_venta:
+            query += " AND v.TIPO_VENTA = %s"
+            params.append(tipo_venta)
+
+        if id_empleado:
+            query += " AND v.ID_EMPLEADO = %s"
+            params.append(id_empleado)
+
+        query += " ORDER BY v.FECHA_VENTA DESC"
+
+        cursor.execute(query, tuple(params))
+        ventas = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(ventas)
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+
+
 
 # ESTOS ENDPOINTS PERTENECEN A CLIENTE.HTML __________________________________________________________________________________________
 # Ruta para obtener todos los clientes
@@ -429,6 +505,21 @@ def historial_compras_proveedores():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
 # __________________________________________________________________________________________________________________________________
+
+# ESTO ENDPOINT  PERTENECE A LA CARGA DE EMPLEADOS DE VENTAS__________________________________________________________________________________________
+@app.route('/api/empleados', methods=['GET'])
+def obtener_empleados():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS FROM empleado")
+        empleados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return jsonify(empleados)
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
 
 # Ruta de prueba
 @app.route('/api/test')

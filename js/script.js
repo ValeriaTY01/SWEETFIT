@@ -30,6 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
+        if (page === "ventas.html") {
+          cargarHistorialVentas();
+        }        
+
         if (page === "cliente.html") {
           initClienteModal();
           cargarClientes();
@@ -434,6 +438,59 @@ function renderPaginacionModal() {
     contenedor.appendChild(btn);
   }
 }
+
+function cargarHistorialVentas() {
+  fetch("http://localhost:5000/api/ventas")
+    .then(res => res.json())
+    .then(ventas => {
+      const tabla = document.querySelector("#tablaVentas tbody");
+      tabla.innerHTML = "";
+    
+      if (!ventas || ventas.length === 0) {
+        tabla.innerHTML = "<tr><td colspan='6'>No hay ventas registradas.</td></tr>";
+        return;
+      }
+    
+      ventas.forEach(venta => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${venta.ID_VENTA}</td>
+          <td>${new Date(venta.FECHA_VENTA).toLocaleString()}</td>
+          <td>${venta.TIPO_VENTA}</td>
+          <td>${venta.EMPLEADO}</td>
+          <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
+          <td><button class="btn-ticket" onclick="verDetalleVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
+        `;
+        tabla.appendChild(row);
+      });
+    })    
+    .catch(err => {
+      console.error("Error al cargar historial:", err);
+    });
+}
+
+function cargarSelectEmpleados() {
+  const selects = document.querySelectorAll("#selectEmpleado, #selectEmpleadoVenta");
+  if (selects.length === 0) return;
+
+  fetch("http://localhost:5000/api/empleados")
+    .then(res => res.json())
+    .then(empleados => {
+      selects.forEach(select => {
+        select.innerHTML = "<option value=''>Seleccionar Empleado</option>";
+        empleados.forEach(emp => {
+          const option = document.createElement("option");
+          option.value = emp.ID_EMPLEADO;
+          option.textContent = `${emp.NOMBRE} ${emp.APELLIDOS}`;
+          select.appendChild(option);
+        });
+      });
+    })
+    .catch(err => {
+      console.error("Error al cargar empleados:", err);
+    });
+}
+
 //HASTA AQUI TERMINA LA LOGICA VENTAS.HTML ____________________________________________________________________
 
 // ESTA LOGICA PERTECENE A CLIENTE.HTML ___________________________________________________________________________
