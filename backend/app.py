@@ -396,6 +396,30 @@ def obtener_proveedores():
         return jsonify(proveedores)
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
+    
+#Obtener productos por proveedor
+@app.route('/api/productoproveedor/<int:id_proveedor>', methods=['GET'])
+def obtener_productoproveedor(id_proveedor):
+    try: 
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+        query = """
+        SELECT p.*, pr.NOMBRE as nombre_proveedor, pr.ID_PROVEEDOR as id_proveedor
+        FROM producto p
+        JOIN producto_proveedor pp ON p.ID_PRODUCTO = pp.ID_PRODUCTO
+        JOIN proveedor pr ON pp.ID_PROVEEDOR = pr.ID_PROVEEDOR
+        WHERE pr.ID_PROVEEDOR = %s
+        """
+        cursor.execute(query, (id_proveedor,))
+        productos = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(productos)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
+
 
 # Agregar proveedor
 @app.route('/api/proveedores', methods=['POST'])

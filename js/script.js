@@ -784,6 +784,8 @@ function cargarProveedores() {
       listaProveedores = data;
       mostrarProveedores(data);
       cargarSelectProveedores(data);
+      const selectProveedor = document.getElementById("proveedorSelect");
+      selectProveedor.addEventListener("change", cargarProductosProveedor);
     });
 }
 
@@ -816,21 +818,30 @@ function cargarSelectProveedores(proveedores) {
   });
 }
 
+
 function cargarProductosProveedor() {
-  fetch("http://localhost:5000/api/productos")
+  const proveedorSeleccionado = document.getElementById("proveedorSelect").value;
+
+  if (!proveedorSeleccionado) return;
+
+
+  fetch(`http://localhost:5000/api/productoproveedor/${proveedorSeleccionado}`)
     .then(res => res.json())
     .then(data => {
-      productosDisponibles = data;
+
       const select = document.getElementById("productoSelect");
       if (!select) return;
 
       select.innerHTML = "<option value=''>Selecciona producto</option>";
       data.forEach(p => {
         const opt = document.createElement("option");
-        opt.value = p.id;
-        opt.textContent = p.nombre;
+        opt.value = p.ID_PRODUCTO;
+        opt.textContent = p.NOMBRE; 
         select.appendChild(opt);
       });
+    })
+    .catch(error => {
+      console.error('Error al cargar productos:', error);
     });
 }
 
