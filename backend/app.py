@@ -391,7 +391,6 @@ def obtener_proveedores():
 
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM proveedor")
         if nombre:
             query = "SELECT * FROM proveedor WHERE LOWER(NOMBRE) LIKE %s"
             cursor.execute(query, (f"%{nombre}%",))
