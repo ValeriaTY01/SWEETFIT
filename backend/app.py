@@ -387,9 +387,17 @@ def obtener_historial_compras(id_cliente):
 @app.route('/api/proveedores', methods=['GET'])
 def obtener_proveedores():
     try:
+        nombre = request.args.get('nombre','').strip().lower()
+
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM proveedor")
+        if nombre:
+            query = "SELECT * FROM proveedor WHERE LOWER(NOMBRE) LIKE %s"
+            cursor.execute(query, (f"%{nombre}%",))
+        else:
+            cursor.execute("SELECT * FROM proveedor")
+
         proveedores = cursor.fetchall()
         cursor.close()
         conn.close()
