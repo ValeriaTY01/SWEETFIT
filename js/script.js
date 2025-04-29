@@ -736,7 +736,7 @@ let listaProveedores = [];
 let productosDisponibles = [];
 let productosCompra = [];
 
-function initProveedorModal() {
+function initProveedorModal(){
   const modalProveedor = document.getElementById("modalProveedor");
   const cerrar = document.getElementById("cerrarModalProveedor");
   const form = document.getElementById("formProveedor");
@@ -752,6 +752,12 @@ function initProveedorModal() {
   });
 
   form.addEventListener("submit", guardarProveedor);
+  const buscador = document.getElementById("buscadorProveedores");
+  if (buscador) {
+    buscador.addEventListener("input", function(e) {
+      cargarProveedores(e.target.value);
+    });
+  }
 }
 
 function abrirModalProveedor() {
@@ -777,15 +783,25 @@ function guardarProveedor(e) {
     });
 }
 
-function cargarProveedores() {
-  fetch("http://localhost:5000/api/proveedores")
+function cargarProveedores(filtroNombre = '') {
+  let url= ("http://localhost:5000/api/proveedores")
+
+  if(filtroNombre){
+    url +=`?nombre=${encodeURIComponent(filtroNombre)}`;
+  }
+  fetch(url)
     .then(res => res.json())
     .then(data => {
       listaProveedores = data;
       mostrarProveedores(data);
       cargarSelectProveedores(data);
-      const selectProveedor = document.getElementById("proveedorSelect");
-      selectProveedor.addEventListener("change", cargarProductosProveedor);
+      if (document.getElementById("proveedorSelect")){
+        const selectProveedor = document.getElementById("proveedorSelect");
+        // Remover los event listeners anteriores para evitar duplicados
+        const nuevoSelect = selectProveedor.cloneNode(true);
+        selectProveedor.parentNode.replaceChild(nuevoSelect, selectProveedor);
+        nuevoSelect.addEventListener("change", cargarProductosProveedor);
+      }
     });
 }
 
