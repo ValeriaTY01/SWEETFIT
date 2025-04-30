@@ -433,9 +433,9 @@ def obtener_productoproveedor(id_proveedor):
 def agregar_proveedor():
     try:
         data = request.json
-        nombre = data.get('NOMBRE')
-        email = data.get('EMAIL')
-        telefono = data.get('TELEFONO')
+        nombre = data.get('nombre')
+        email = data.get('email')
+        telefono = data.get('telefono')
 
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
@@ -448,7 +448,23 @@ def agregar_proveedor():
         return jsonify({'success': True})
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
+    
+#EliminarProveedor
+@app.route('/api/proveedores/<int:id_proveedor>', methods=['DELETE'])
+def eliminar_proveedor(id_proveedor):
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
 
+        cursor.execute("DELETE FROM proveedor WHERE ID_PROVEEDOR = %s", (id_proveedor,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+    
 # Registrar una compra
 @app.route('/api/compras', methods=['POST'])
 def registrar_compra():
