@@ -776,11 +776,19 @@ function guardarProveedor(e) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   })
-    .then(res => res.json())
-    .then(() => {
-      document.getElementById("modalProveedor").style.display = "none";
-      cargarProveedores();
-    });
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert("Error: " + data.error);
+      return;
+    }
+    document.getElementById("modalProveedor").style.display = "none";
+    cargarProveedores();
+  })
+  .catch(err => {
+    console.error("Error en fetch:", err);
+    alert("Error al guardar proveedor.");
+  });
 }
 
 function cargarProveedores(filtroNombre = '') {
@@ -815,10 +823,37 @@ function mostrarProveedores(proveedores) {
       <td>${prov.NOMBRE}</td>
       <td>${prov.EMAIL}</td>
       <td>${prov.TELEFONO}</td>
-      <td><button onclick="verHistorial(${prov.ID_PROVEEDOR})">📜 Historial</button></td>
+      <td><button class="btn-eliminar">🗑️ Eliminar</button></td>
     `;
+    const btnEliminar = tr.querySelector(".btn-eliminar");
+    btnEliminar.addEventListener("click", () => eliminarProveedor(prov.ID_PROVEEDOR));
+
     tbody.appendChild(tr);
   });
+}
+
+function eliminarProveedor(id_proveedor) {
+  if (confirm("¿Estás seguro de que deseas eliminar este proveedor?")) {
+    console.log(`Llamando a: /api/proveedores/${id_proveedor}`);
+    fetch(`http://localhost:5000/api/proveedores/${id_proveedor}`, {
+      method: 'DELETE'
+
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("No se pudo eliminar el proveedor.");
+      }
+      return response.json();
+    })
+    .then(data => {
+      alert("Proveedor eliminado correctamente.");
+      obtenerProveedores(); 
+    })
+    .catch(error => {
+      console.error("Error al eliminar proveedor:", error);
+      alert("Ocurrió un error al eliminar el proveedor.");
+    });
+  }
 }
 
 function cargarSelectProveedores(proveedores) {
