@@ -570,7 +570,7 @@ def historial_compras_proveedores():
         return jsonify([
             {
                 'id_compra': c['ID_COMPRA'],
-                'fecha': c['FECHA_COMPRA'],
+                'fecha': c['FECHA_COMPRA'].strftime("%d-%m-%Y %H:%M"),
                 'total': float(c['TOTAL_COMPRA']),
                 'nombre_proveedor': c['NOMBRE_PROVEEDOR']
             } for c in compras
