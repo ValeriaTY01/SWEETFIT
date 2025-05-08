@@ -750,7 +750,13 @@ function initProveedorModal(){
   window.addEventListener("click", e => {
     if (e.target === modalProveedor) modalProveedor.style.display = "none";
   });
-
+  const cancelar = document.getElementById("cancelarEdicion");
+  if (cancelar) {
+    cancelar.addEventListener("click", () => {
+      modalProveedor.style.display = "none";
+      form.reset();
+    });
+  }
   form.addEventListener("submit", guardarProveedor);
   const buscador = document.getElementById("buscadorProveedores");
   if (buscador) {
@@ -770,9 +776,16 @@ function guardarProveedor(e) {
   e.preventDefault();
   const form = e.target;
   const data = Object.fromEntries(new FormData(form));
+  const id =data.id_proveedor;
 
-  fetch("http://localhost:5000/api/proveedores", {
-    method: "POST",
+  const url = id 
+    ? `http://localhost:5000/api/proveedores/${id}`
+    : "http://localhost:5000/api/proveedores";
+
+  const method = id ? "PUT" : "POST";
+
+  fetch(url, {
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   })
@@ -783,6 +796,7 @@ function guardarProveedor(e) {
       return;
     }
     document.getElementById("modalProveedor").style.display = "none";
+    form.reset(); 
     cargarProveedores();
   })
   .catch(err => {
@@ -823,10 +837,16 @@ function mostrarProveedores(proveedores) {
       <td>${prov.NOMBRE}</td>
       <td>${prov.EMAIL}</td>
       <td>${prov.TELEFONO}</td>
-      <td><button class="btn-eliminar">🗑️ Eliminar</button></td>
+      <td class="col-acciones">
+        <button class="btn-editarprov" title="Editar proveedor">✏️</button>
+        <button class="btn-eliminar" title="Eliminar proveedor">🗑️</button>
+      </td>
     `;
     const btnEliminar = tr.querySelector(".btn-eliminar");
     btnEliminar.addEventListener("click", () => eliminarProveedor(prov.ID_PROVEEDOR));
+
+    const btnEditarProv = tr.querySelector(".btn-editarprov");
+    btnEditarProv.addEventListener("click", () => modalEditarProveedor(prov.ID_PROVEEDOR));
 
     tbody.appendChild(tr);
   });
@@ -834,7 +854,7 @@ function mostrarProveedores(proveedores) {
 
 function eliminarProveedor(id_proveedor) {
   if (confirm("¿Estás seguro de que deseas eliminar este proveedor?")) {
-    console.log(`Llamando a: /api/proveedores/${id_proveedor}`);
+
     fetch(`http://localhost:5000/api/proveedores/${id_proveedor}`, {
       method: 'DELETE'
 
@@ -854,6 +874,21 @@ function eliminarProveedor(id_proveedor) {
       alert("Ocurrió un error al eliminar el proveedor.");
     });
   }
+}
+
+function modalEditarProveedor(id_proveedor){
+  const modal = document.getElementById("modalProveedor");
+  const form = document.getElementById("formProveedor");
+
+  const prov = listaProveedores.find(p => p.ID_PROVEEDOR === id_proveedor);
+  if (!prov) return alert("Proveedor no encontrado");
+
+  form.id_proveedor.value = prov.ID_PROVEEDOR;
+  form.nombre.value = prov.NOMBRE;
+  form.email.value = prov.EMAIL;
+  form.telefono.value = prov.TELEFONO;
+
+  modal.style.display = "flex";
 }
 
 function cargarSelectProveedores(proveedores) {

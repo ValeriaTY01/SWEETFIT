@@ -17,17 +17,10 @@
 Por favor checalo si asi esta bien, creo que de ese ya esta completo, eso creo
 
 ************************ PROVEEDOR.HTML **************************
-1.- Componer la ventana flotante de Agregar Proveedor, ya que no se cierra AJAJAJAAJJAJA Dayan:LISTO
-2.- En la ventana flotante de Nueva Compra me gustaria implementar un filtrado, es decir cuando se
-    seleccione un Proveedor que se carga en automatico los productos que contiene ese Proveedor. Y no se
-    si cambiar algo del diseno de la ventana ese, ahi dime, Dayan: LISTO
 3.- Me gustaria tambien que la tabla que muestra los proveedores se hiciera mas pequena y tuviera un scroll
     porque se ve todo a golpe de vista.
-4.- Tampoco funciona el boton de Acciones en este caso Historial AJAJAJAJAJA tambien hay que darle diseno
 5.- Tambien hacer que se vea mas estatico el Historial de Compra porque se ve todo rascuacho, y neta me dio hueva
-    ya menearle
-6.- Tampoco funciona el buscador AJAJAJAJAJJAJAJA
-
+    ya menearle.
 
 
 Y CREO QUE ESO ES TODO LO QUE RECUERDO QUE HACE FALTA, AHI DIME SI VES ALGO QUE YO NO VI

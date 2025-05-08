@@ -25,10 +25,12 @@
     <span id="cerrarModalProveedor" class="cerrar-modal">×</span>
     <h3>Agregar Proveedor</h3>
     <form id="formProveedor">
+      <input type="hidden" name="id_proveedor" />
       <input type="text" name="nombre" placeholder="Nombre del proveedor" required />
       <input type="email" name="email" placeholder="Email" required />
       <input type="text" name="telefono" placeholder="Teléfono" />
       <button type="submit">Guardar</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
     </form>
   </div>
 </div>

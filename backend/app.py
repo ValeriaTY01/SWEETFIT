@@ -465,6 +465,31 @@ def eliminar_proveedor(id_proveedor):
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
     
+#Editar Proveedor
+@app.route('/api/proveedores/<int:id_proveedor>', methods=['PUT'])
+def actualizar_proveedor(id_proveedor):
+    try:
+        data = request.json
+        nombre =data.get('nombre')
+        email = data.get('email')
+        telefono = data.get('telefono')
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        query = """
+                UPDATE PROVEEDOR
+                SET NOMBRE = %s, EMAIL = %s, TELEFONO = %s
+                WHERE ID_PROVEEDOR = %s
+        """
+        cursor.execute(query, (nombre, email, telefono, id_proveedor))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}, 500)
+
 # Registrar una compra
 @app.route('/api/compras', methods=['POST'])
 def registrar_compra():
