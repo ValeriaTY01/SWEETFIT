@@ -5,11 +5,61 @@ document.getElementById('toggleSidebar').addEventListener('click', () => {
 
 // ESTA LOGICA ES PARA LA CARGA DE VENTANAS (productos.html, cliente.html, etc.)_____________________________________
 document.addEventListener("DOMContentLoaded", () => {
+  
+  const usuarioData = JSON.parse(localStorage.getItem("usuario"));
+  const usuario = usuarioData.usuario;
+  if (!usuario) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  if (window.location.pathname.includes("login.html")) {
+    initLogin();
+    return; 
+  }
+
+  const userLabel = document.getElementById("userLabel");
+  if (userLabel && usuario && usuario.puesto) {
+    userLabel.textContent = usuario.puesto;
+  }
+
   const contentArea = document.getElementById("content-area");
   const links = document.querySelectorAll(".menu a");
   const title = document.getElementById("titulo-vista");
+  const userButton = document.getElementById("userButton");
+  const dropdownMenu = document.getElementById("dropdownMenu");
+  const logoutButton = document.getElementById("logoutButton");
+
+
+  if (userButton && dropdownMenu) {
+    userButton.addEventListener("click", () => {
+      dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+    });
+
+  window.addEventListener("click", function (e) {
+    if (!userButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+}
+
+  if (logoutButton) {
+    logoutButton.addEventListener("click", () => {
+      localStorage.removeItem("usuario");
+      window.location.href = "login.html";
+    });
+  }
+
 
   function loadPage(page, text) {
+    const puesto = usuario.puesto;
+
+    const permitidoCajero = ["panel.html", "ventas.html", "productos.html"];
+    if (puesto === "Cajero" && !permitidoCajero.includes(page)) {
+      contentArea.innerHTML = "<p>No tienes acceso a esta sección.</p>";
+      return;
+    }
+
     fetch(`views/${page}`)
       .then(res => res.text())
       .then(html => {
@@ -83,8 +133,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadPage("panel.html", "Panel Principal");
 });
-//HASTA AQUI TERMINA LA LOGICA DE LAS VENTANAS DINAMICAS ___________________________________________________________
 
+//HASTA AQUI TERMINA LA LOGICA DE LAS VENTANAS DINAMICAS ___________________________________________________________
+//ESTA LOGICA PERTENECE A LOGIN_____________________________________________________________________________________
+function initLogin() {
+  const form = document.getElementById("loginForm");
+  if (!form) return;
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const email = form.email.value;
+    const contraseña = form.contraseña.value;
+
+    fetch("http://localhost:5000/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, contraseña }),
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.mensaje) {
+        console.log("Login exitoso. Redirigiendo a index...");
+        localStorage.setItem("usuario", JSON.stringify(data));
+        window.location.href = "index.html";
+      } else {
+        alert(data.error);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error al conectar con el servidor");
+    });
+  });
+}
 // ESTA LOGICA PERTECENE A PRODUCTOS.HTML ___________________________________________________________________________
 let categoriaActual = "";
 let paginaActual = 1;
