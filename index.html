@@ -33,8 +33,17 @@
   <div class="main">
     <div class="topbar">
       <h2 id="titulo-vista">Panel Principal</h2>
-      <div>👤 Administración</div>
-    </div>
+      <div class="dropdown">
+        <button class="dropdown-toggle" id="userButton"> 
+          <span class="fi fi-br-circle-user"></span> 
+          <span id="userLabel"></span>
+        </button>
+
+        <div class="dropdown-menu" id="dropdownMenu">
+          <a class="dropdown-item" href="#" id="logoutButton">Cerrar sesión</a>
+        </div>
+      </div>
+</div>
 
     <!-- Contenido dinámico -->
     <div id="content-area">
