@@ -94,6 +94,43 @@ def obtener_productos():
         print("ERROR MYSQL:", err)
         return jsonify({'error': str(err)}), 500
 
+@app.route('/login.html')
+def login_page():
+    return send_from_directory('.', 'login.html')
+#Ruta del login
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json  
+    email = data.get('email')
+    contraseña = data.get('contraseña')
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT * FROM EMPLEADO WHERE EMAIL = %s AND CONTRASEÑA = %s"
+        cursor.execute(query, (email, contraseña))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if user:
+            return jsonify({
+        "mensaje": "Login exitoso",
+        "usuario": {
+        "id": user["ID_EMPLEADO"],
+        "nombre": user["NOMBRE"],
+        "apellidos": user["APELLIDOS"],
+        "email": user["EMAIL"],
+        "puesto": user["PUESTO"]
+    }
+})
+        else:
+            return jsonify({"error": "Credenciales incorrectas"}), 401
+
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+
+
 # Ruta para obtener las categorías
 @app.route('/api/categorias', methods=['GET'])
 def obtener_categorias():
@@ -577,7 +614,6 @@ def historial_compras_proveedores():
         ])
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
-# __________________________________________________________________________________________________________________________________
 
 # ESTO ENDPOINT  PERTENECE A LA CARGA DE EMPLEADOS DE VENTAS__________________________________________________________________________________________
 @app.route('/api/empleados', methods=['GET'])
