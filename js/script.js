@@ -1026,12 +1026,16 @@ function cerrarModalCompra() {
 }
 
 function agregarProductoCompra() {
-  const productoId = document.getElementById("productoSelect").value;
+  const productoSelect = document.getElementById("productoSelect");
+  const productoId = productoSelect.value;
+  const nombreProducto = productoSelect.options[productoSelect.selectedIndex].text;
   const cantidad = parseInt(document.getElementById("cantidadProducto").value);
-  if (!productoId || isNaN(cantidad) || cantidad <= 0) return alert("Completa producto y cantidad");
 
-  const producto = productosDisponibles.find(p => p.id == productoId);
-  productosCompra.push({ ...producto, cantidad });
+  if (!productoId || isNaN(cantidad) || cantidad <= 0) {
+    return alert("Completa producto y cantidad");
+  }
+
+  productosCompra.push({ id: productoId, nombre: nombreProducto, cantidad });
   actualizarListaProductosCompra();
 }
 
