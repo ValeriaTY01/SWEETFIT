@@ -988,7 +988,6 @@ function cargarSelectProveedores(proveedores) {
   });
 }
 
-
 function cargarProductosProveedor() {
   const proveedorSeleccionado = document.getElementById("proveedorSelect").value;
 
@@ -1090,8 +1089,55 @@ function cargarHistorialCompras() {
           <p><strong>Fecha:</strong> ${compra.fecha}</p>
           <p><strong>Total:</strong> $${parseFloat(compra.total).toFixed(2)}</p>
         `;
+        div.addEventListener("click", (()=> {
+          const id = compra.id_compra;
+          return () => mostrarTicketCompra(id);
+
+        })());
         contenedor.appendChild(div);
       });
+    });
+}
+function mostrarTicketCompra(id_compra) {
+
+  fetch(`http://localhost:5000/api/compras/${id_compra}?t=${Date.now()}`)
+    .then(res => res.json())
+    .then(detalles => {
+
+      const modal = document.getElementById("modalTicket");
+      const contenido = document.getElementById("contenidoTicket");
+
+      let html = `
+        <h3>🧾 Detalle de Compra</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Cantidad</th>
+              <th>Producto</th>
+              <th>Precio Unitario</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      if (detalles.length == 0){
+        html +=  `<tr><td colspan="4">No hay productos registrados en esta compra.</td></tr>`;
+      }else{
+        detalles.forEach(prod => {
+          html += `
+            <tr>
+              <td>${prod.CANTIDAD_COMPRA}</td>
+              <td>${prod.NOMBRE}</td>
+              <td>$${parseFloat(prod['PRECIO UNITARIO']).toFixed(2)}</td>
+              <td>$${parseFloat(prod.SUBTOTAL_COMPRA).toFixed(2)}</td>
+            </tr>
+          `;
+        });
+      }
+
+      html += "</tbody></table>";
+      contenido.innerHTML = html;
+      modal.style.display = "block";
     });
 }
 // FIN DE LÓGICA DE PROVEEDORES ______________________________________________________________________

@@ -462,8 +462,7 @@ def obtener_productoproveedor(id_proveedor):
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        
-
+    
 
 # Agregar proveedor
 @app.route('/api/proveedores', methods=['POST'])
@@ -615,6 +614,29 @@ def historial_compras_proveedores():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
 
+# RUTA PARA LOS TICKETS DE COMPRA
+@app.route('/api/compras/<int:id_compra>', methods=['GET'])
+def detalle_compra(id_compra):
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+        query = """
+        SELECT  DP.CANTIDAD_COMPRA,  PR.NOMBRE, PR.PRECIO AS 'PRECIO UNITARIO', DP.SUBTOTAL_COMPRA
+        FROM detalle_compra DP
+        JOIN producto PR ON DP.ID_PRODUCTO = PR.ID_PRODUCTO
+        WHERE DP.ID_COMPRA = %s;
+        """
+        cursor.execute(query,(id_compra,))
+        detalles = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return jsonify(detalles)
+    except mysql.connector.Error as err:
+        print("Error al consultar detalles de la compra:", err)
+        return jsonify({'error': str(err)}), 500
+
+# __________________________________________________________________________________________________________________________________
 # ESTO ENDPOINT  PERTENECE A LA CARGA DE EMPLEADOS DE VENTAS__________________________________________________________________________________________
 @app.route('/api/empleados', methods=['GET'])
 def obtener_empleados():
