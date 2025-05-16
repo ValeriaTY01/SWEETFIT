@@ -852,7 +852,10 @@ function initProveedorModal(){
 
 function abrirModalProveedor() {
   const modal = document.getElementById("modalProveedor");
-  document.getElementById("formProveedor").reset();
+  const form = document.getElementById("formProveedor");
+  const titulo = modal.querySelector("h3");
+
+  titulo.textContent = "Agregar Proveedor"; // Cambiar el título
   modal.style.display = "flex";
 }
 
@@ -963,6 +966,7 @@ function eliminarProveedor(id_proveedor) {
 function modalEditarProveedor(id_proveedor){
   const modal = document.getElementById("modalProveedor");
   const form = document.getElementById("formProveedor");
+  const titulo = modal.querySelector("h3");
 
   const prov = listaProveedores.find(p => p.ID_PROVEEDOR === id_proveedor);
   if (!prov) return alert("Proveedor no encontrado");
@@ -971,6 +975,8 @@ function modalEditarProveedor(id_proveedor){
   form.nombre.value = prov.NOMBRE;
   form.email.value = prov.EMAIL;
   form.telefono.value = prov.TELEFONO;
+
+  titulo.textContent = "Editar Proveedor";
 
   modal.style.display = "flex";
 }
