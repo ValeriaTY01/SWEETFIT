@@ -620,18 +620,39 @@ def detalle_compra(id_compra):
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
-        query = """
-        SELECT  DP.CANTIDAD_COMPRA,  PR.NOMBRE, PR.PRECIO AS 'PRECIO UNITARIO', DP.SUBTOTAL_COMPRA
+        query_compra = """
+        SELECT C.FECHA_COMPRA, P.NOMBRE AS PROVEEDOR_NOMBRE
+        FROM compra C
+        JOIN proveedor P ON C.ID_PROVEEDOR = P.ID_PROVEEDOR
+        WHERE C.ID_COMPRA = %s
+        """
+        cursor.execute(query_compra, (id_compra,))
+        compra = cursor.fetchone()
+
+        if not compra:
+            return jsonify({'error': 'Compra no encontrada'}), 404
+
+        fecha_compra = compra['FECHA_COMPRA'].strftime("%Y-%m-%dT%H:%M:%S")
+        nombre_proveedor = compra['PROVEEDOR_NOMBRE']
+
+        query_detalles = """
+        SELECT DP.CANTIDAD_COMPRA, PR.NOMBRE, PR.PRECIO AS 'PRECIO UNITARIO', DP.SUBTOTAL_COMPRA
         FROM detalle_compra DP
         JOIN producto PR ON DP.ID_PRODUCTO = PR.ID_PRODUCTO
         WHERE DP.ID_COMPRA = %s;
         """
-        cursor.execute(query,(id_compra,))
+        cursor.execute(query_detalles, (id_compra,))
         detalles = cursor.fetchall()
+
         cursor.close()
         conn.close()
 
-        return jsonify(detalles)
+        return jsonify({
+            'fecha': fecha_compra,
+            'proveedor': nombre_proveedor,
+            'detalles': detalles
+        })
+
     except mysql.connector.Error as err:
         print("Error al consultar detalles de la compra:", err)
         return jsonify({'error': str(err)}), 500

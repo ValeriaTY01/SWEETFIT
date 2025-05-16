@@ -1103,47 +1103,168 @@ function cargarHistorialCompras() {
     });
 }
 function mostrarTicketCompra(id_compra) {
-
   fetch(`http://localhost:5000/api/compras/${id_compra}?t=${Date.now()}`)
     .then(res => res.json())
-    .then(detalles => {
+    .then(data => {
+      const detalles = data.detalles;
+      const fechaCompra = new Date(data.fecha); 
+      const proveedor = data.proveedor || 'Proveedor desconocido';
 
-      const modal = document.getElementById("modalTicket");
-      const contenido = document.getElementById("contenidoTicket");
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      const fechaFormateada = fechaCompra.toLocaleDateString('es-ES', options);
+
+      let total = 0;
+      if (detalles.length > 0) {
+        total = detalles.reduce((sum, item) => sum + parseFloat(item.SUBTOTAL_COMPRA), 0);
+      }
 
       let html = `
-        <h3>🧾 Detalle de Compra</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Cantidad</th>
-              <th>Producto</th>
-              <th>Precio Unitario</th>
-              <th>Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div class="ticket-header">
+          <h2>SWEETFIT-COMPRA</h2>
+          <p class="ticket-date">${fechaFormateada}</p>
+          <p><strong>Proveedor:</strong> ${proveedor}</p>
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-items">
+          <table class="ticket-table">
+            <thead>
+              <tr>
+                <th>Cant.</th>
+                <th>Producto</th>
+                <th>Precio Unit.</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
       `;
-      if (detalles.length == 0){
-        html +=  `<tr><td colspan="4">No hay productos registrados en esta compra.</td></tr>`;
-      }else{
+
+      if (detalles.length === 0) {
+        html += `<tr><td colspan="4" class="no-items">No hay productos registrados en esta compra.</td></tr>`;
+      } else {
         detalles.forEach(prod => {
           html += `
             <tr>
-              <td>${prod.CANTIDAD_COMPRA}</td>
+              <td class="text-center">${prod.CANTIDAD_COMPRA}</td>
               <td>${prod.NOMBRE}</td>
-              <td>$${parseFloat(prod['PRECIO UNITARIO']).toFixed(2)}</td>
-              <td>$${parseFloat(prod.SUBTOTAL_COMPRA).toFixed(2)}</td>
+              <td class="text-right">$${parseFloat(prod['PRECIO UNITARIO']).toFixed(2)}</td>
+              <td class="text-right">$${parseFloat(prod.SUBTOTAL_COMPRA).toFixed(2)}</td>
             </tr>
           `;
         });
       }
 
-      html += "</tbody></table>";
+      html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-summary">
+          <div class="summary-row total">
+            <span class="summary-label">TOTAL:</span>
+            <span class="summary-value">$${total.toFixed(2)}</span>
+          </div>
+          <div style="text-align: right; margin-top: 10px;">
+            <button onclick="imprimirTicket()" class="btn-imprimir">Imprimir Ticket</button>
+          </div>
+        </div>
+      `;
+
+      const modal = document.getElementById("modalTicket");
+      const contenido = document.getElementById("contenidoTicket");
       contenido.innerHTML = html;
+      modal.style.display = "block";
+    })
+    .catch(error => {
+      console.error("Error al cargar los detalles de la compra:", error);
+      const modal = document.getElementById("modalTicket");
+      const contenido = document.getElementById("contenidoTicket");
+      contenido.innerHTML = `<p class="error-message">Error al cargar los detalles de la compra. Por favor, intente nuevamente.</p>`;
       modal.style.display = "block";
     });
 }
+function imprimirTicket() {
+  const contenidoOriginal = document.getElementById("contenidoTicket");
+  const ventana = window.open('', '_blank', 'width=280,height=600');
+  const doc = ventana.document;
+
+  const html = doc.createElement('html');
+  const head = doc.createElement('head');
+  const body = doc.createElement('body');
+
+  // Estilos para el ticket termico
+  const style = doc.createElement('style');
+  style.textContent = `
+    body {
+      font-family: monospace;
+      font-size: 11px;
+      margin: 0;
+      padding: 10px;
+      width: 58mm;
+    }
+    h2 {
+      text-align: center;
+      font-size: 16px;
+      margin: 0 0 5px 0;
+    }
+    .ticket-date {
+      text-align: center;
+      font-size: 10px;
+      margin-bottom: 10px;
+    }
+    .ticket-divider {
+      border-top: 1px dashed #000;
+      margin: 5px 0;
+    }
+    .ticket-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    .ticket-table th,
+    .ticket-table td {
+      padding: 2px 0;
+      text-align: left;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .ticket-summary {
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .summary-row.total {
+      border-top: 1px solid #000;
+      padding-top: 5px;
+    }
+    @media print {
+      body {
+        margin: 0;
+        width: 58mm;
+      }
+    }
+  `;
+  head.appendChild(style);
+  html.appendChild(head);
+
+  const contenidoClonado = contenidoOriginal.cloneNode(true);
+  body.appendChild(contenidoClonado);
+  html.appendChild(body);
+
+  doc.replaceChild(html, doc.documentElement);
+  ventana.onload = () => {
+    ventana.focus();
+    ventana.print();
+    ventana.onafterprint = () => ventana.close();
+  };
+}
+
+
 // FIN DE LÓGICA DE PROVEEDORES ______________________________________________________________________
 
 

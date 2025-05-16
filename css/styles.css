@@ -1027,8 +1027,9 @@ h3 {
   padding: 2.2rem;
   border-radius: 16px;
   width: 90%;
-  max-width: 500px;
+  max-width: 400px;
   position: relative;
+  overflow: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   animation: modalFadeIn 0.3s ease-out;
 }
@@ -1049,6 +1050,7 @@ h3 {
   cursor: pointer;
   color: var(--color-texto-claro);
   transition: color 0.2s ease;
+  z-index: 1000;
 }
 
 .cerrar-modal:hover {
@@ -1226,36 +1228,148 @@ h3 {
 
 /* Ticket de compra */
 .modal-content {
-  background: var(--color-blanco);
-  margin: 10% auto;
-  padding: 25px;
-  border-radius: 16px;
+  position: relative;
+  background: #ffffff;
+  margin: 5% auto;
+  padding: 0;
+  border-radius: 8px;
   width: 90%;
-  max-width: 600px;
+  max-width: 400px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   animation: modalFadeIn 0.3s ease-out;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  overflow: hidden;
 }
 
 .close {
-  float: right;
-  font-size: 28px;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 24px;
   font-weight: bold;
   cursor: pointer;
-  color: var(--color-texto-claro);
+  color: #333;
   transition: all 0.2s ease;
+  z-index: 10;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .close:hover {
-  color: var(--color-primario-oscuro);
+  color: #000;
 }
 
 #contenidoTicket {
-  padding: 15px;
-  border: 1px dashed var(--color-primario);
-  border-radius: 8px;
-  background-color: var(--color-gris-claro);
+  padding: 0;
+  background-color: #fff;
 }
 
+/* Estilos para el ticket */
+.ticket-header {
+  background-color: #f8f9fa;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.ticket-header .logo {
+  font-size: 30px;
+  margin-bottom: 5px;
+}
+
+.ticket-header h2 {
+  margin: 5px 0;
+  font-size: 22px;
+  color: #333;
+}
+
+.ticket-header .ticket-date {
+  font-size: 12px;
+  color: #888;
+  margin: 5px 0;
+}
+
+.ticket-divider {
+  border-top: 1px dashed #ccc;
+  margin: 0 15px;
+}
+
+.ticket-items {
+  padding: 15px;
+}
+
+.ticket-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ticket-table th {
+  padding: 8px 5px;
+  text-align: left;
+  font-size: 12px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+.ticket-table td {
+  padding: 8px 5px;
+  font-size: 13px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.ticket-table .no-items {
+  text-align: center;
+  padding: 15px;
+  color: #888;
+  font-style: italic;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.ticket-summary {
+  padding: 15px;
+  background-color: #f8f9fa;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.summary-label {
+  font-size: 16px;
+  font-weight: bold;
+  color: #222;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #222;
+}
+
+.error-message {
+  color: #d9534f;
+  text-align: center;
+  padding: 30px 20px;
+}
+/* Animación para el modal */
+@keyframes modalFadeIn {
+  from {opacity: 0; transform: translateY(-20px);}
+  to {opacity: 1; transform: translateY(0);}
+}
 /* Media queries para responsive */
 @media (max-width: 768px) {
   .acciones-proveedor {
@@ -1275,5 +1389,13 @@ h3 {
   #tablaHistorialCompras {
     grid-template-columns: 1fr;
   }
+}
+.btn-imprimir {
+  background-color: #bdbaba;
+  border-radius: 5px;
+  cursor: pointer;
+  color: black;
+  border: none;
+  padding: 12px 25px;
 }
 /* _____________________________________________________________________________*/
