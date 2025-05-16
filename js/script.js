@@ -1109,6 +1109,8 @@ function mostrarTicketCompra(id_compra) {
       const detalles = data.detalles;
       const fechaCompra = new Date(data.fecha); 
       const proveedor = data.proveedor || 'Proveedor desconocido';
+      const ordenCompra = data.orden;
+      const empleado = data.empleado;
 
       const options = { 
         year: 'numeric', 
@@ -1129,6 +1131,8 @@ function mostrarTicketCompra(id_compra) {
           <h2>SWEETFIT-COMPRA</h2>
           <p class="ticket-date">${fechaFormateada}</p>
           <p><strong>Proveedor:</strong> ${proveedor}</p>
+          <p><strong>Empleado:</strong>${empleado}</p>
+          <p><strong>Orden de Compra:</strong>${ordenCompra}</p>
         </div>
         <div class="ticket-divider"></div>
         <div class="ticket-items">

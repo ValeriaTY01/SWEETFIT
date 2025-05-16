@@ -1230,7 +1230,7 @@ h3 {
 .modal-content {
   position: relative;
   background: #ffffff;
-  margin: 5% auto;
+  margin: 2% auto;
   padding: 0;
   border-radius: 8px;
   width: 90%;
@@ -1238,7 +1238,11 @@ h3 {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   animation: modalFadeIn 0.3s ease-out;
   font-family: 'Segoe UI', 'Arial', sans-serif;
-  overflow: hidden;
+  overflow: auto;
+}
+.modal-content {
+  max-height: 90vh; 
+  overflow-y: auto; 
 }
 
 .close {
@@ -1267,6 +1271,7 @@ h3 {
 #contenidoTicket {
   padding: 0;
   background-color: #fff;
+  overflow-y: auto;
 }
 
 /* Estilos para el ticket */
