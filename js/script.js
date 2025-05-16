@@ -1169,8 +1169,8 @@ function mostrarTicketCompra(id_compra) {
             <span class="summary-label">TOTAL:</span>
             <span class="summary-value">$${total.toFixed(2)}</span>
           </div>
-          <div style="text-align: right; margin-top: 10px;">
-            <button onclick="imprimirTicket()" class="btn-imprimir">Imprimir Ticket</button>
+          <div class="no-print" style="text-align: right; margin-top: 10px;">
+            <button id="btnImprimirTicket" class="btn-imprimir">Imprimir Ticket</button>
           </div>
         </div>
       `;
@@ -1179,6 +1179,14 @@ function mostrarTicketCompra(id_compra) {
       const contenido = document.getElementById("contenidoTicket");
       contenido.innerHTML = html;
       modal.style.display = "block";
+      setTimeout(() => {
+        const boton = document.getElementById("btnImprimirTicket");
+        if (boton) {
+          boton.addEventListener("click", imprimirTicket);
+        } else {
+          console.error("No se encontró el botón de imprimir.");
+        }
+      }, 0);
     })
     .catch(error => {
       console.error("Error al cargar los detalles de la compra:", error);
@@ -1190,79 +1198,85 @@ function mostrarTicketCompra(id_compra) {
 }
 function imprimirTicket() {
   const contenidoOriginal = document.getElementById("contenidoTicket");
-  const ventana = window.open('', '_blank', 'width=280,height=600');
-  const doc = ventana.document;
 
-  const html = doc.createElement('html');
-  const head = doc.createElement('head');
-  const body = doc.createElement('body');
+  const clon = contenidoOriginal.cloneNode(true);
+  const boton = clon.querySelector("#btnImprimirTicket");
+  if (boton) {
+    boton.remove();
+  }
 
-  // Estilos para el ticket termico
-  const style = doc.createElement('style');
-  style.textContent = `
-    body {
-      font-family: monospace;
-      font-size: 11px;
-      margin: 0;
-      padding: 10px;
-      width: 58mm;
-    }
-    h2 {
-      text-align: center;
-      font-size: 16px;
-      margin: 0 0 5px 0;
-    }
-    .ticket-date {
-      text-align: center;
-      font-size: 10px;
-      margin-bottom: 10px;
-    }
-    .ticket-divider {
-      border-top: 1px dashed #000;
-      margin: 5px 0;
-    }
-    .ticket-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 10px;
-    }
-    .ticket-table th,
-    .ticket-table td {
-      padding: 2px 0;
-      text-align: left;
-    }
-    .text-center { text-align: center; }
-    .text-right { text-align: right; }
-    .ticket-summary {
-      margin-top: 10px;
-      font-weight: bold;
-      font-size: 12px;
-    }
-    .summary-row.total {
-      border-top: 1px solid #000;
-      padding-top: 5px;
-    }
-    @media print {
-      body {
-        margin: 0;
-        width: 58mm;
-      }
-    }
+  const ventana = window.open('', '_blank', 'width=600,height=600');
+  if (!ventana) {
+    alert("Bloqueador de ventanas emergentes detectado. Por favor, permite las ventanas emergentes para imprimir.");
+    return;
+  }
+
+  const html = `
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: monospace;
+            font-size: 11px;
+            margin: 0;
+            padding: 10px;
+            width: 58mm;
+          }
+          h2 {
+            text-align: center;
+            font-size: 16px;
+            margin: 0 0 5px 0;
+          }
+          .ticket-date {
+            text-align: center;
+            font-size: 10px;
+            margin-bottom: 10px;
+          }
+          .ticket-divider {
+            border-top: 1px dashed #000;
+            margin: 5px 0;
+          }
+          .ticket-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+          }
+          .ticket-table th,
+          .ticket-table td {
+            padding: 2px 0;
+            text-align: left;
+          }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .ticket-summary {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 12px;
+          }
+          .summary-row.total {
+            border-top: 1px solid #000;
+            padding-top: 5px;
+          }
+        </style>
+      </head>
+      <body>
+        ${clon.innerHTML}
+      </body>
+    </html>
   `;
-  head.appendChild(style);
-  html.appendChild(head);
 
-  const contenidoClonado = contenidoOriginal.cloneNode(true);
-  body.appendChild(contenidoClonado);
-  html.appendChild(body);
+  ventana.document.open();
+  ventana.document.write(html);
+  ventana.document.close();
 
-  doc.replaceChild(html, doc.documentElement);
   ventana.onload = () => {
     ventana.focus();
     ventana.print();
     ventana.onafterprint = () => ventana.close();
   };
 }
+
+
 
 
 // FIN DE LÓGICA DE PROVEEDORES ______________________________________________________________________
