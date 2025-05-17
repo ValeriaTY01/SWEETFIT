@@ -621,10 +621,11 @@ def detalle_compra(id_compra):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
         query_compra = """
-        SELECT C.FECHA_COMPRA, P.NOMBRE AS PROVEEDOR_NOMBRE
+        SELECT C.FECHA_COMPRA, P.NOMBRE AS PROVEEDOR_NOMBRE, C.ID_COMPRA AS ORDEN_COMPRA, E.NOMBRE AS NOMBRE_EMPLEADO
         FROM compra C
         JOIN proveedor P ON C.ID_PROVEEDOR = P.ID_PROVEEDOR
-        WHERE C.ID_COMPRA = %s
+        JOIN empleado E ON C.ID_EMPLEADO = E.ID_EMPLEADO
+        WHERE C.ID_COMPRA = %s;
         """
         cursor.execute(query_compra, (id_compra,))
         compra = cursor.fetchone()
@@ -634,6 +635,9 @@ def detalle_compra(id_compra):
 
         fecha_compra = compra['FECHA_COMPRA'].strftime("%Y-%m-%dT%H:%M:%S")
         nombre_proveedor = compra['PROVEEDOR_NOMBRE']
+        orden_compra = compra['ORDEN_COMPRA']
+        nombre_empleado = compra['NOMBRE_EMPLEADO']
+
 
         query_detalles = """
         SELECT DP.CANTIDAD_COMPRA, PR.NOMBRE, PR.PRECIO AS 'PRECIO UNITARIO', DP.SUBTOTAL_COMPRA
@@ -650,6 +654,8 @@ def detalle_compra(id_compra):
         return jsonify({
             'fecha': fecha_compra,
             'proveedor': nombre_proveedor,
+            'orden': orden_compra,
+            'empleado': nombre_empleado,
             'detalles': detalles
         })
 
