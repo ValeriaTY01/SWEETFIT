@@ -339,7 +339,51 @@ def historial_ventas():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
 
+#Ruta para info del ticket venta
+@app.route('/api/ventas/<int:id_venta>', methods=['GET'])
+def  detalle_venta(id_venta):
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary = True)
+        query_venta= """
+        SELECT V.ID_VENTA AS ORDEN_VENTA, V.FECHA_VENTA, CONCAT(C.NOMBRE, ' ', C.APELLIDO_PATERNO, ' ', C.APELLIDO_MATERNO) AS 'NOMBRE_CLIENTE',
+        E.NOMBRE AS 'NOMBRE_EMPLEADO'
+        FROM venta V
+        LEFT JOIN cliente C ON V.ID_CLIENTE = C.ID_CLIENTE
+        JOIN empleado E ON V.ID_EMPLEADO = E.ID_EMPLEADO
+        WHERE V.ID_VENTA = %s;
+        """ 
+        cursor.execute(query_venta, (id_venta,))
+        venta = cursor.fetchone()
+        if not venta :
+            return jsonify({'error': 'Venta no encontrada'}), 404
+        
+        orden_venta = venta['ORDEN_VENTA']
+        fecha_venta = venta['FECHA_VENTA'].strftime("%Y-%m-%dT%H:%M:%S")
+        nombre_cliente = venta['NOMBRE_CLIENTE'] or "General"
+        nombre_empleado = venta['NOMBRE_EMPLEADO']
 
+        query_detallesV ="""
+        SELECT DV.CANTIDAD_VENTA, PR.NOMBRE AS PRODUCTO, PR.PRECIO AS 'PRECIO_UNITARIO', DV.SUBTOTAL_VENTA
+        FROM detalle_venta DV
+        JOIN producto PR ON DV.ID_PRODUCTO = PR.ID_PRODUCTO
+        WHERE DV.ID_VENTA = %s;
+        """ 
+        cursor.execute(query_detallesV, (id_venta,))
+        detallesV = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify({
+            'orden': orden_venta,
+            'fecha': fecha_venta,
+            'cliente': nombre_cliente,
+            'empleado': nombre_empleado,
+            'detallesV': detallesV
+        })
+
+    except mysql.connector.Error as err:
+        print("Error al consultar detalles de la venta:", err)
+        return jsonify({'error': str(err)}), 500
 
 # ESTOS ENDPOINTS PERTENECEN A CLIENTE.HTML __________________________________________________________________________________________
 # Ruta para obtener todos los clientes

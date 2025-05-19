@@ -544,7 +544,7 @@ function cargarHistorialVentas() {
           <td>${venta.TIPO_VENTA}</td>
           <td>${venta.EMPLEADO}</td>
           <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
-          <td><button class="btn-ticket" onclick="verDetalleVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
+          <td><button class="btn-ticket" onclick="mostrarTicketVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
         `;
         tabla.appendChild(row);
       });
@@ -553,6 +553,115 @@ function cargarHistorialVentas() {
       console.error("Error al cargar historial:", err);
     });
 }
+function cerrarModalDetalleVenta() {
+  const modal = document.getElementById("modalDetalleVenta");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+function mostrarTicketVenta(id_venta){
+  fetch(`http://localhost:5000/api/ventas/${id_venta}?t=${Date.now()}`)
+    .then(res => res.json())
+    .then(data => {
+        if (!data || !data.detallesV) {
+          throw new Error("Datos de venta inválidos o no encontrados.");
+        }
+      const detallesV = data.detallesV;
+      const fechaVenta = new Date(data.fecha);
+      const cliente = data.cliente || 'Cliente desconocido';
+      const ordenVenta = data.orden;
+      const empleado = data.empleado;
+
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      const fechaFormateada = fechaVenta.toLocaleDateString('es-ES', options);
+
+      let  total = 0;
+      if  (detallesV.length > 0) {
+        total = detallesV.reduce((sum, item) => sum + parseFloat(item.SUBTOTAL_VENTA), 0);
+      }
+
+      let html = `
+        <div class="ticket-header">
+          <img src="img/logosweet.png" class="only-print" alt="Logo">
+          <h2>SWEETFIT-VENTA</h2>
+        </div>
+        <p class="ticket-date">${fechaFormateada}</p>
+        <div class="customer-info">
+          <p><strong>Orden de Venta:</strong> ${ordenVenta}</p>
+          <p><strong>Cliente:</strong> ${cliente}</p>
+          <p><strong>Empleada:</strong> ${empleado}</p>
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-items">
+          <table class="ticket-table">
+            <thead>
+              <tr>
+                <th class="col-qty">Cant.</th>
+                <th class="col-prod">Producto</th>
+                <th class="col-price">Precio Unit.</th>
+                <th class="col-subtotal">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      if (detallesV.length === 0){
+         html += `<tr><td colspan="4" class="no-items">No hay productos registrados en esta venta.</td></tr>`;
+      }else{
+        detallesV.forEach(prod => {
+          html += `
+            <tr>
+                  <td class="col-qty">${prod.CANTIDAD_VENTA}</td>
+                  <td class="col-prod">${prod.PRODUCTO}</td>
+                  <td class="col-price">$${parseFloat(prod.PRECIO_UNITARIO).toFixed(2)}</td>
+                  <td class="col-subtotal">$${parseFloat(prod.SUBTOTAL_VENTA).toFixed(2)}</td>
+            </tr>
+          `;
+        });
+      }
+      html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-summary">
+          <div class="summary-row total">
+            <span class="summary-label">TOTAL:</span>
+            <span class="summary-value">$${total.toFixed(2)}</span>
+          </div>
+          <div class="no-print" style="text-align: right; margin-top: 10px;">
+            <button id="btnImprimirTicket" class="btn-imprimir">Imprimir Ticket</button>
+          </div>
+        </div>
+      `;
+      const modal = document.getElementById("modalDetalleVenta");
+      const contenido = document.getElementById("detalleVentaContenido");
+      contenido.innerHTML = html;
+      modal.style.display = "block";
+      setTimeout(() => {
+        const boton = document.getElementById("btnImprimirTicket");
+        if (boton) {
+          boton.addEventListener("click", () => imprimirTicket("detalleVentaContenido"));
+        } else {
+          console.error("No se encontró el botón de imprimir.");
+        }
+      }, 0);
+    })
+    .catch(error => {
+      console.error("Error al cargar los detalles de la compra:", error);
+      const modal = document.getElementById("modalDetalleVenta");
+      const contenido = document.getElementById("detalleVentaContenido");
+      contenido.innerHTML = `<p class="error-message">Error al cargar los detalles de la compra. Por favor, intente nuevamente.</p>`;
+      modal.style.display = "block";
+    });
+}
+
+
 
 function filtrarVentas() {
   const fechaInicio = document.getElementById("filtroFechaInicio").value;
@@ -593,7 +702,7 @@ function filtrarVentas() {
           <td>${venta.TIPO_VENTA}</td>
           <td>${venta.nombre_empleado || '—'}</td>
           <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
-          <td><button class="btn-ticket" onclick="verDetalleVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
+          <td><button class="btn-ticket" onclick="mostrarTicketVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
         `;
         tabla.appendChild(row);
       });
@@ -1134,6 +1243,7 @@ function mostrarTicketCompra(id_compra) {
 
       let html = `
         <div class="ticket-header">
+
           <h2>SWEETFIT-COMPRA</h2>
           <p class="ticket-date">${fechaFormateada}</p>
           <p><strong>Proveedor:</strong> ${proveedor}</p>
@@ -1192,7 +1302,7 @@ function mostrarTicketCompra(id_compra) {
       setTimeout(() => {
         const boton = document.getElementById("btnImprimirTicket");
         if (boton) {
-          boton.addEventListener("click", imprimirTicket);
+          boton.addEventListener("click",() => imprimirTicket("contenidoTicket"));
         } else {
           console.error("No se encontró el botón de imprimir.");
         }
@@ -1206,8 +1316,14 @@ function mostrarTicketCompra(id_compra) {
       modal.style.display = "block";
     });
 }
-function imprimirTicket() {
-  const contenidoOriginal = document.getElementById("contenidoTicket");
+function imprimirTicket(idContenedor) {
+  const contenidoOriginal = document.getElementById(idContenedor);
+
+  if (!contenidoOriginal) {
+    console.error(`No se encontró el contenedor con ID '${idContenedor}'`);
+    alert("No se pudo encontrar el contenido para imprimir.");
+    return;
+  }
 
   const clon = contenidoOriginal.cloneNode(true);
   const boton = clon.querySelector("#btnImprimirTicket");
@@ -1220,7 +1336,7 @@ function imprimirTicket() {
     alert("Bloqueador de ventanas emergentes detectado. Por favor, permite las ventanas emergentes para imprimir.");
     return;
   }
-
+  
   const html = `
     <html>
       <head>
@@ -1230,17 +1346,31 @@ function imprimirTicket() {
             font-size: 11px;
             margin: 0;
             padding: 10px;
-            width: 58mm;
+            width: 68mm;
           }
-          h2 {
+          img {
+            max-width: 60%;
+            height: auto;
+            display: block;
+            margin: 0 auto 0px auto;
+          }
+          .ticket-header {
             text-align: center;
-            font-size: 16px;
-            margin: 0 0 5px 0;
+          }
+          .ticket-header h2 {
+            font-size: 14px;
+            margin: 0;
           }
           .ticket-date {
             text-align: center;
             font-size: 10px;
-            margin-bottom: 10px;
+            margin: 5px 0;
+          }
+          .customer-info {
+            margin: 5px 0;
+          }
+          .customer-info p {
+            margin: 2px 0;
           }
           .ticket-divider {
             border-top: 1px dashed #000;
@@ -1249,23 +1379,54 @@ function imprimirTicket() {
           .ticket-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10px;
+            table-layout: fixed;
           }
-          .ticket-table th,
-          .ticket-table td {
+          .ticket-table th {
+            font-size: 10px;
+            text-align: left;
             padding: 2px 0;
+          }
+          .ticket-table td {
+            font-size: 10px;
+            padding: 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .ticket-table .col-qty {
+            width: 10%;
+            text-align: center;
+          }
+          .ticket-table .col-prod {
+            width: 40%;
             text-align: left;
           }
-          .text-center { text-align: center; }
-          .text-right { text-align: right; }
+          .ticket-table .col-price {
+            width: 25%;
+            text-align: right;
+          }
+          .ticket-table .col-subtotal {
+            width: 25%;
+            text-align: right;
+          }
           .ticket-summary {
             margin-top: 10px;
+            text-align: right;
             font-weight: bold;
             font-size: 12px;
           }
-          .summary-row.total {
-            border-top: 1px solid #000;
-            padding-top: 5px;
+          .no-print {
+            margin-top: 0px;
+          }
+          .logo-placeholder {
+            width: 60px;
+            height: 10px; /* Reducida la altura */
+            margin: 0; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 0 px solid #ccc;
           }
         </style>
       </head>
@@ -1291,8 +1452,3 @@ function imprimirTicket() {
 
 // FIN DE LÓGICA DE PROVEEDORES ______________________________________________________________________
 
-
-// ESTA LÓGICA PERTENECERA FUTURAMENTE AL LOGIN ______________________________________________________
-function obtenerEmpleadoLogueado() {
-  return 1; // este valor solo es de prueba
-}

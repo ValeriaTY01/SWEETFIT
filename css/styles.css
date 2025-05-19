@@ -683,6 +683,19 @@ fieldset.grupo-cliente legend {
   background-color: #00332b;
   transform: translateY(2px);
 }
+.only-print {
+  display: none;
+}
+@media print {
+  .only-print {
+    display: block;
+    margin: 0 auto 0px auto;
+    width: 25mm;
+    max-width: 100%;
+    height: auto;
+  }
+}
+
 /* _____________________________________________________________________________*/
 
 /* ======== ESTILOS DE LA INTERFAZ DE CLIENTES ======== */
