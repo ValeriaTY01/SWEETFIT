@@ -172,7 +172,6 @@ function initLogin() {
 // ESTA LOGICA PERTECENE A PRODUCTOS.HTML ___________________________________________________________________________
 let categoriaActual = "";
 let paginaActual = 1;
-let categoriasPermitidas = []
 
 function initProductoModal() {
   const btnAbrir = document.querySelector(".btn-agregar-producto");
@@ -185,11 +184,6 @@ function initProductoModal() {
   const inputImagen = form.querySelector("input[name='imagen']");
 
   if (btnAbrir && modal && cerrar && form) {
-    const asignarEventos = () => {
-      form.removeEventListener("submit", handleSubmit); // Limpiar previo si existe
-      form.addEventListener("submit", handleSubmit);
-    };
-
     btnAbrir.addEventListener("click", () => {
       titulo.textContent = "Agregar nuevo producto";
       botonSubmit.textContent = "Guardar";
@@ -222,29 +216,6 @@ function initProductoModal() {
 
     form.addEventListener("submit", e => {
       e.preventDefault();
-      const categoriaSelect = document.getElementById("categoria");
-      if (!categoriaSelect) {
-          console.error("Error: Elemento 'categoria' no encontrado en el DOM");
-          alert("Error interno. Por favor recarga la página.");
-          return;
-      }
-      const categoriaSeleccionada = categoriaSelect.value;
-    
-      if (!categoriaSeleccionada) {
-          alert("Por favor, selecciona una categoría.");
-          return;
-      }
-      
-      if (!Array.isArray(categoriasPermitidas)) {
-          console.error("Error: categoriasPermitidas no es un array", categoriasPermitidas);
-          alert("Error interno de configuración. Intente nuevamente.");
-          return;
-      }
-      
-      if (!categoriasPermitidas.includes(categoriaSeleccionada)) {
-                alert("Por favor, selecciona una categoría válida.");
-                return;
-            }
 
       const nombre = form.nombre.value.trim();
       const descripcion = form.descripcion.value.trim();
@@ -291,25 +262,6 @@ function initProductoModal() {
       }
 }
 
-function cargarCategoriasPermitidas() {
-    fetch("http://localhost:5000/api/categorias_permitidas")
-        .then(res => res.json())
-        .then(categorias => {
-            categoriasPermitidas = categorias;
-            actualizarSelectCategorias();
-        });
-}
-function actualizarSelectCategorias() {
-    const select = document.getElementById("categoria");
-    select.innerHTML = '<option value="">Seleccione categoría</option>';
-    
-    categoriasPermitidas.forEach(cat => {
-        const option = document.createElement("option");
-        option.value = cat;
-        option.textContent = cat;
-        select.appendChild(option);
-    });
-}
 
 function cargarCategorias() {
   const contenedor = document.querySelector(".filtros-categorias");

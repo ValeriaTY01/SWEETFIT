@@ -10,6 +10,7 @@ CORS(app)
 # Carpeta para guardar imágenes subidas
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db_config = {
@@ -145,6 +146,7 @@ def obtener_categorias():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
 
+
 # Ruta para agregar producto con imagen
 @app.route('/api/productos', methods=['POST'])
 def agregar_producto():
@@ -188,6 +190,11 @@ def eliminar_producto(id_producto):
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
+
+        cursor.execute("SELECT 1 FROM producto WHERE ID_PRODUCTO = %s", (id_producto,))
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+        
         cursor.execute("DELETE FROM producto WHERE ID_PRODUCTO = %s", (id_producto,))
         conn.commit()
         cursor.close()
@@ -197,44 +204,86 @@ def eliminar_producto(id_producto):
         return jsonify({'success': False, 'error': str(err)}), 500
 
 # Editar producto (actualizar imagen)
-@app.route('/api/editar_producto/<int:id_producto>', methods=['PUT'])
+@app.route('/api/editar_producto/<int:id_producto>', methods=['GET', 'POST'])
 def editar_producto(id_producto):
-    try:
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        categoria = request.form.get('categoria')
-        cantidad = request.form.get('cantidad')
-        precio = request.form.get('precio')
+    if request.method == 'GET':
+        try:
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor(dictionary=True)
+            query = """
+                    SELECT ID_PRODUCTO, NOMBRE, DESCRIPCION, CATEGORIA, CANTIDAD, PRECIO, IMAGEN
+                    FROM producto 
+                    WHERE ID_PRODUCTO = %s
+                """
+            cursor.execute(query, (id_producto,))
+            producto = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if not producto:
+                return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+            
+            producto_data = {
+                'ID_PRODUCTO': producto['ID_PRODUCTO'],
+                'nombre': producto['NOMBRE'],
+                'descripcion': producto['DESCRIPCION'],
+                'categoria': producto['CATEGORIA'],
+                'cantidad': producto['CANTIDAD'],
+                'precio': float(producto['PRECIO']),
+                'imagen': producto['IMAGEN']
+            }
+            return jsonify(producto_data), 200
+        except mysql.connector.Error as err:
+            return jsonify({'success': False, 'error': str(err)}), 500
 
-        imagen = None
-        if 'imagen' in request.files:
-            imagen_file = request.files['imagen']
-            if imagen_file.filename:
-                filename = secure_filename(imagen_file.filename)
-                ruta_imagen = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                imagen_file.save(ruta_imagen)
-                imagen = filename
+    if request.method == 'POST' and request.form.get('_method') == 'PUT':
+        try:
+            nombre = request.form.get('nombre')
+            descripcion = request.form.get('descripcion')
+            categoria = request.form.get('categoria')
+            cantidad = request.form.get('cantidad')
+            precio = request.form.get('precio')
 
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-        if imagen:
-            query = """UPDATE producto 
-                       SET nombre = %s, descripcion = %s, categoria = %s, cantidad = %s, precio = %s, imagen = %s 
-                       WHERE ID_PRODUCTO = %s"""
-            cursor.execute(query, (nombre, descripcion, categoria, cantidad, precio, imagen, id_producto))
-        else:
-            query = """UPDATE producto 
-                       SET nombre = %s, descripcion = %s, categoria = %s, cantidad = %s, precio = %s 
-                       WHERE ID_PRODUCTO = %s"""
-            cursor.execute(query, (nombre, descripcion, categoria, cantidad, precio, id_producto))
+            imagen = None
+            if 'imagen' in request.files:
+                imagen_file = request.files['imagen']
+                if imagen_file and imagen_file.filename != '':
+                    filename = secure_filename(imagen_file.filename)
+                    ruta_imagen = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    imagen_file.save(ruta_imagen)
+                    imagen = filename
 
-        conn.commit()
-        cursor.close()
-        conn.close()
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor()
 
-        return jsonify({'success': True, 'mensaje': 'Producto actualizado exitosamente'})
-    except mysql.connector.Error as err:
-        return jsonify({'success': False, 'error': str(err)}), 500
+            if imagen:
+                query = """UPDATE producto 
+                           SET NOMBRE = %s, DESCRIPCION = %s, CATEGORIA = %s, 
+                               CANTIDAD = %s, PRECIO = %s, IMAGEN = %s 
+                           WHERE ID_PRODUCTO = %s"""
+                cursor.execute(query, (nombre, descripcion, categoria, cantidad, precio, imagen, id_producto))
+            else:
+                query = """UPDATE producto 
+                           SET NOMBRE = %s, DESCRIPCION = %s, CATEGORIA = %s, 
+                               CANTIDAD = %s, PRECIO = %s 
+                           WHERE ID_PRODUCTO = %s"""
+                cursor.execute(query, (nombre, descripcion, categoria, cantidad, precio, id_producto))
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'mensaje': 'Producto actualizado exitosamente',
+                'imagen': imagen
+            }), 200
+
+        except mysql.connector.Error as err:
+            return jsonify({'success': False, 'error': str(err)}), 500
+        except Exception as e:
+            return jsonify({'success': False, 'error': f"Error inesperado: {str(e)}"}), 500
+
+    return jsonify({'success': False, 'error': 'Método no permitido'}), 405
 
 # Obtener producto por ID
 @app.route('/api/producto/<int:id_producto>', methods=['GET'])
@@ -249,7 +298,7 @@ def obtener_producto_por_id(id_producto):
 
         if p:
             producto = {
-                'id': p['ID_PRODUCTO'],
+                'id_producto': p['ID_PRODUCTO'],
                 'nombre': p['NOMBRE'],
                 'descripcion': p['DESCRIPCION'],
                 'categoria': p['CATEGORIA'],

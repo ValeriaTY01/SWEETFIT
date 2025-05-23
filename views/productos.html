@@ -26,7 +26,7 @@
     <h3>Agregar nuevo producto</h3>
     <form id="formAgregarProducto" enctype="multipart/form-data" method="POST">
       <input type="hidden" id="productoId" name="id_producto" />
-      <input type="hidden" name="_method" value="PUT">
+      <input type="hidden" name="_method" value="PUT"> <!-- Para simular método PUT -->
       
       <input type="text" id="nombre" name="nombre" placeholder="Nombre del producto" required />
       <input type="text" id="descripcion" name="descripcion" placeholder="Descripción" required />
@@ -35,9 +35,22 @@
       
       <select id="categoria" name="categoria" required>
         <option value="">Seleccione categoría</option>
-        <!-- Las opciones se cargarán dinámicamente -->
+        <option value="Comida">Comida</option>
+        <option value="Entrada">Entrada</option>
+        <option value="Entre Pan">Entre Pan</option>
+        <option value="Ensalada">Ensalada</option>
+        <option value="Jugo">Jugo</option>
+        <option value="Jugo Detox">Jugo Detox</option>
+        <option value="Licuado">Licuado</option>
+        <option value="Bebida">Bebida</option>
+        <option value="Shot Saludable">Shot Saludable</option>
+        <option value="Snacks healthy">Snacks healthy</option>
+        <option value="Desayuno">Desayuno</option>
+        <option value="Sandwich">Sandwich</option>
+        <option value="Extra">Extra</option>
       </select>
 
+      <!-- Imagen con vista previa -->
       <label for="imagen">Seleccionar imagen:</label>
       <input type="file" id="imagen" name="imagen" accept="image/*" />
       <img id="previewImagen" style="max-height: 120px; margin-top: 10px; display: none;" />
@@ -46,4 +59,3 @@
     </form>
   </div>
 </div>
-
