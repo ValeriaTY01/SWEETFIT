@@ -22,39 +22,27 @@
 <!-- MODAL PARA AGREGAR PRODUCTO -->
 <div id="modalAgregarProducto" class="modal">
   <div class="modal-contenido">
-    <span id="cerrarModal" class="cerrar">✖</span>
+    <span id="cerrarModal" class="cerrar">✖&times;</span>
     <h3>Agregar nuevo producto</h3>
-    <form id="formAgregarProducto" enctype="multipart/form-data">
-      <input type="hidden" id="productoId" name="productoId" />
-      <input type="text" name="nombre" placeholder="Nombre del producto" required />
-      <input type="text" name="descripcion" placeholder="Descripción" required />
-      <input type="number" name="precio" placeholder="Precio" required />
-      <input type="number" name="cantidad" placeholder="Stock" required />
-      <input type="text" name="categoria" placeholder="Categoría" required />
+    <form id="formAgregarProducto" enctype="multipart/form-data" method="POST">
+      <input type="hidden" id="productoId" name="id_producto" />
+      <input type="hidden" name="_method" value="PUT">
+      
+      <input type="text" id="nombre" name="nombre" placeholder="Nombre del producto" required />
+      <input type="text" id="descripcion" name="descripcion" placeholder="Descripción" required />
+      <input type="number" id="precio" name="precio" placeholder="Precio" step="0.01" required />
+      <input type="number" id="cantidad" name="cantidad" placeholder="Stock" min="0" required />
+      
+      <select id="categoria" name="categoria" required>
+        <option value="">Seleccione categoría</option>
+        <!-- Las opciones se cargarán dinámicamente -->
+      </select>
 
-      <!-- Imagen con vista previa -->
-      <input type="file" name="imagen" accept="image/*" required />
-      <img id="previewImagen" style="max-height: 120px; margin-top: 10px;" />
+      <label for="imagen">Seleccionar imagen:</label>
+      <input type="file" id="imagen" name="imagen" accept="image/*" />
+      <img id="previewImagen" style="max-height: 120px; margin-top: 10px; display: none;" />
 
-      <button type="submit">Guardar</button>
-    </form>
-  </div>
-</div>
->
-</div>
-
-<!-- MODAL PARA EDITAR PRODUCTO -->
-<div class="modal" id="modalEditarProducto">
-  <div class="modal-content">
-    <span class="cerrar" id="cerrarEditarModal">&times;</span>
-    <h2>Editar Producto</h2>
-    <form id="formEditarProducto" data-id="">
-      <input type="text" name="nombre" placeholder="Nombre del producto" required />
-      <textarea name="descripcion" placeholder="Descripción"></textarea>
-      <input type="text" name="categoria" placeholder="Categoría" required />
-      <input type="number" step="0.01" name="precio" placeholder="Precio" required />
-      <input type="text" name="imagen" placeholder="URL de la imagen" />
-      <button type="submit">Guardar Cambios</button>
+      <button type="submit">Guardar cambios</button>
     </form>
   </div>
 </div>
