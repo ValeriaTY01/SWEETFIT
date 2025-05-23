@@ -313,6 +313,8 @@ body {
   padding: 2rem;
   border-radius: 12px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto; 
   max-width: 500px;
   position: relative;
   box-shadow: 0 0 20px rgba(0,0,0,0.2);
