@@ -1,0 +1,4 @@
+Flask
+gunicorn
+flask-cors
+mysql-connector-python
