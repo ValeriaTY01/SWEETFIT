@@ -1,0 +1,47 @@
+    <!-- Contenido -->
+    <div class="contenido-empleados">
+      <!-- Formulario -->
+      <div class="formulario-alta">
+        <h3>🆕 Alta de Empleado</h3>
+        <form id="altaEmpleadoForm">
+          <label for="nombre">Nombre:</label>
+          <input type="text" id="nombre" name="nombre" required>
+
+          <label for="apellidos">Apellidos:</label>
+          <input type="text" id="apellidos" name="apellidos" required>
+
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required>
+
+          <label for="password">Contraseña:</label>
+          <input type="password" id="password" name="password" required>
+
+          <label for="puesto">Puesto:</label>
+          <select id="puesto" name="puesto" required>
+            <option value="Administradora">Administrador</option>
+            <option value="Cajera">Cajero</option>
+          </select>
+
+          <button type="submit" class="btn-guardar">Guardar Empleado</button>
+        </form>
+      </div>
+
+      <!-- Tabla -->
+      <div class="tabla-empleados">
+        <h3>👥 Empleados Registrados</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Rol</th>
+            </tr>
+          </thead>
+          <tbody id="empleadosTable">
+            <!-- Se cargan dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
