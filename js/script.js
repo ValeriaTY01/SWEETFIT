@@ -115,7 +115,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const texto = e.target.value.toLowerCase();
             mostrarProveedores(listaProveedores.filter(p => p.nombre.toLowerCase().includes(texto)));
           });
-        }        
+        } 
+        
+        if (page === "reportes.html") {
+          inicializarReportes();
+        }
       })
       .catch(() => {
         contentArea.innerHTML = "<p>Error al cargar la página.</p>";
@@ -1482,9 +1486,265 @@ function imprimirTicket(idContenedor) {
     ventana.onafterprint = () => ventana.close();
   };
 }
-
-
-
-
 // FIN DE LÓGICA DE PROVEEDORES ______________________________________________________________________
 
+//COMIENZO DE LA LOGICA DE REPORTES.HTML _____________________________________________________________________
+function inicializarReportes() {
+  const tipoReporte = document.getElementById("tipoReporte");
+  const tituloTipoReporte = document.getElementById("tituloTipoReporte");
+  const graficaVentas = document.getElementById("graficaVentas");
+  const graficaCategorias = document.getElementById("graficaCategorias");
+
+  let chartVentas;
+  let chartCategorias;
+
+  function actualizarTitulo(tipo) {
+    switch (tipo) {
+      case "diario": return "Ventas Diarias (últimos 30 días)";
+      case "semanal": return "Ventas Semanales (últimas 12 semanas)";
+      case "mensual": return "Ventas Mensuales (últimos 12 meses)";
+      default: return "";
+    }
+  }
+
+  function obtenerFechaPorTipo(tipo) {
+    if (tipo === "diario") {
+      return document.getElementById("fechaDia")?.value || "";
+    }
+    if (tipo === "semanal") {
+      return document.getElementById("fechaSemana")?.value || "";
+    }
+    if (tipo === "mensual") {
+      return document.getElementById("fechaMes")?.value || "";
+    }
+    return "";
+  }
+
+  function obtenerNombreDiaSemana(fecha) {
+    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    return dias[fecha.getDay()];
+  }
+
+  function obtenerSemanaDelMes(fecha) {
+    const primerDiaMes = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+    const diaDelMes = fecha.getDate();
+
+    // Número de días entre el primer día del mes y la fecha actual
+    const ajuste = primerDiaMes.getDay(); // 0 (Domingo) a 6 (Sábado)
+    return Math.ceil((diaDelMes + ajuste) / 7);
+  }
+
+  function formatearFecha(fechaStr, tipo) {
+    const fecha = new Date(fechaStr + "T00:00:00"); // fuerza local
+
+    if (isNaN(fecha)) return "Fecha inválida";
+
+    switch (tipo) {
+      case "diario":
+        return fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+      case "semanal": {
+        // Día largo (ej: "Lunes 01 Abr")
+        const opciones = { weekday: "long", day: "2-digit", month: "short" };
+        return fecha.toLocaleDateString("es-MX", opciones).replace('.', '');
+      }
+
+      case "mensual": {
+        const semana = obtenerSemanaDelMes(fecha);
+        const mes = fecha.toLocaleDateString("es-MX", { month: "long" });
+        return `Semana ${semana} (${mes})`;
+      }
+
+      default:
+        return fecha.toLocaleDateString();
+    }
+  }
+
+  async function obtenerDatosVentas(tipo, fecha) {
+    try {
+      let url = `http://localhost:5000/api/reportes/ventas?tipo=${tipo}`;
+      if (fecha) url += `&fecha=${encodeURIComponent(fecha)}`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Error en la respuesta del servidor");
+
+      const json = await response.json();
+
+      if (!json.ventas || !Array.isArray(json.ventas)) throw new Error("No se encontraron datos de ventas");
+
+      return {
+        labels: json.ventas.map(v => formatearFecha(v.fecha, tipo)),
+        data: json.ventas.map(v => v.total_ventas)
+      };
+
+    } catch (err) {
+      console.error("Error al obtener datos de ventas:", err.message);
+      return { labels: [], data: [] };
+    }
+  }
+
+  function renderizarGrafica(tipo) {
+    const fecha = obtenerFechaPorTipo(tipo); // Esta función debe estar definida en tu entorno
+
+    obtenerDatosVentas(tipo, fecha).then(datos => {
+      if (chartVentas) chartVentas.destroy(); // chartVentas debe estar definido globalmente
+
+      chartVentas = new Chart(graficaVentas, {
+        type: "line",
+        data: {
+          labels: datos.labels,
+          datasets: [{
+            label: "Ventas",
+            data: datos.data,
+            borderColor: "#28a745",
+            backgroundColor: "rgba(40, 167, 69, 0.2)",
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: "#28a745",
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#222',
+                font: { size: 14, weight: 'bold' }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => `$${parseFloat(ctx.raw).toFixed(2)}`
+              },
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              titleFont: { weight: 'bold' }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Fecha',
+                color: '#555',
+                font: { size: 14, weight: 'bold' }
+              },
+              ticks: {
+                color: '#444',
+                maxRotation: 45,
+                minRotation: 45,
+                autoSkip: true,
+                maxTicksLimit: 15
+              },
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Monto ($)',
+                color: '#555',
+                font: { size: 14, weight: 'bold' }
+              },
+              beginAtZero: true,
+              ticks: {
+                color: '#444'
+              },
+              grid: {
+                color: 'rgba(0,0,0,0.1)'
+              }
+            }
+          }
+        }
+      });
+
+      tituloTipoReporte.textContent = actualizarTitulo(tipo); // Asegúrate de tener esta función
+    });
+  }
+
+
+  async function obtenerDatosCategorias() {
+    try {
+      const response = await fetch('http://localhost:5000/api/reportes/categorias');
+      const json = await response.json();
+
+      if (!json.categorias) throw new Error("No se encontraron datos de categorías");
+
+      return {
+        labels: json.categorias.map(c => c.CATEGORIA),
+        data: json.categorias.map(c => c.total_cantidad_vendida)
+      };
+    } catch (err) {
+      console.error("Error al obtener datos de categorías:", err);
+      return { labels: [], data: [] };
+    }
+  }
+
+  function renderizarGraficaCategorias() {
+    obtenerDatosCategorias().then(datos => {
+      if (chartCategorias) chartCategorias.destroy();
+
+      chartCategorias = new Chart(graficaCategorias, {
+        type: "bar",
+        data: {
+          labels: datos.labels,
+          datasets: [{
+            label: "Productos Vendidos",
+            data: datos.data,
+            backgroundColor: "rgba(0, 123, 255, 0.7)",
+            borderColor: "rgba(0, 123, 255, 1)",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: "y",
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: { color: '#444' },
+              grid: { color: 'rgba(0,0,0,0.1)' }
+            },
+            y: {
+              ticks: { color: '#444' },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#222', font: { size: 14, weight: 'bold' } }
+            },
+            tooltip: {
+              enabled: true,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              titleFont: { weight: 'bold' }
+            }
+          }
+        }
+      });
+    });
+  }
+
+  // Ejecutar al cargar la vista
+  renderizarGrafica(tipoReporte.value);
+  renderizarGraficaCategorias();
+
+  // Evento cambio en selector tipoReporte
+  tipoReporte.addEventListener("change", () => {
+    renderizarGrafica(tipoReporte.value);
+  });
+
+  // Eventos para detectar cambios en inputs de fecha según el tipo
+  ["fechaDia", "fechaSemana", "fechaMes"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", () => {
+      renderizarGrafica(tipoReporte.value);
+    });
+  });
+}

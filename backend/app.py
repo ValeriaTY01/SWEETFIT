@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request, send_from_directory
 import mysql.connector
 from flask_cors import CORS
 import os
+from datetime import datetime
+import re
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -14,11 +16,11 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db_config = {
-    'host': os.environ['DB_HOST'],
-    'user': os.environ['DB_USER'],
-    'password': os.environ['DB_PASSWORD'],
-    'database': os.environ['DB_NAME'],
-    'port': 3306
+    'host': 'localhost',
+    'port': 3307,
+    'user': 'root',
+    'password': '',
+    'database': 'sweetfit'
 }
 
 # ESTOS ENDPOINTS PERTENECEN A PRODUCTOS.HTML Y VENTAS.HTML___________________________________________________
@@ -757,6 +759,179 @@ def detalle_compra(id_compra):
         return jsonify({'error': str(err)}), 500
 
 # __________________________________________________________________________________________________________________________________
+
+# ESTOS ENDPOINTS PERTENECEN A REPORTES.HTML______________________________________________________________________________________________________________________
+
+def parse_fecha_semana(fecha):
+    match = re.match(r"(\d{4})-W(\d{1,2})", fecha)
+    if match:
+        anio = int(match.group(1))
+        semana = int(match.group(2))
+        return anio, semana
+    return None, None
+
+def validar_fecha_diario(fecha):
+    try:
+        dt = datetime.strptime(fecha, '%Y-%m-%d')
+        return dt.date()
+    except ValueError:
+        return None
+
+def validar_fecha_mensual(fecha):
+    try:
+        dt = datetime.strptime(fecha, '%Y-%m')
+        return dt.year, dt.month
+    except ValueError:
+        return None, None
+
+@app.route('/api/reportes/ventas', methods=['GET'])
+def obtener_ventas_reporte():
+    tipo = request.args.get('tipo', 'diario').lower()
+    fecha = request.args.get('fecha', None)
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        if tipo == 'diario':
+            if fecha:
+                fecha_valida = validar_fecha_diario(fecha)
+                if not fecha_valida:
+                    return jsonify({'error': 'Formato de fecha inválido para tipo diario. Use YYYY-MM-DD'}), 400
+
+                query = """
+                    SELECT 
+                        DATE_FORMAT(FECHA_VENTA, '%Y-%m-%d %H:00:00') AS fecha,
+                        SUM(TOTAL_VENTA) AS total_ventas
+                    FROM venta
+                    WHERE DATE(FECHA_VENTA) = %s
+                    GROUP BY HOUR(FECHA_VENTA)
+                    ORDER BY HOUR(FECHA_VENTA)
+                """
+                cursor.execute(query, (fecha_valida,))
+                ventas = cursor.fetchall()
+            else:
+                query = """
+                    SELECT 
+                        DATE(FECHA_VENTA) AS fecha,
+                        SUM(TOTAL_VENTA) AS total_ventas
+                    FROM venta
+                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 30 DAY
+                    GROUP BY DATE(FECHA_VENTA)
+                    ORDER BY fecha
+                """
+                cursor.execute(query)
+                ventas = cursor.fetchall()
+
+        elif tipo == 'semanal':
+            if fecha:
+                anio, semana = parse_fecha_semana(fecha)
+                if anio is None or semana is None:
+                    return jsonify({'error': 'Formato de fecha inválido para tipo semanal. Use YYYY-Www'}), 400
+
+                query = """
+                    SELECT 
+                        YEAR(FECHA_VENTA) AS anio,
+                        WEEK(FECHA_VENTA, 1) AS semana,
+                        DATE_FORMAT(STR_TO_DATE(CONCAT(YEAR(FECHA_VENTA), 'W', LPAD(WEEK(FECHA_VENTA, 1), 2, '0')), '%XW%V'), '%Y-%m-%d') AS fecha,
+                        SUM(TOTAL_VENTA) AS total_ventas
+                    FROM venta
+                    WHERE YEAR(FECHA_VENTA) = %s AND WEEK(FECHA_VENTA, 1) = %s
+                    GROUP BY anio, semana
+                    ORDER BY anio, semana
+                """
+                cursor.execute(query, (anio, semana))
+                ventas = cursor.fetchall()
+            else:
+                query = """
+                    SELECT 
+                        YEAR(FECHA_VENTA) AS anio,
+                        WEEK(FECHA_VENTA, 1) AS semana,
+                        DATE_FORMAT(STR_TO_DATE(CONCAT(YEAR(FECHA_VENTA), 'W', LPAD(WEEK(FECHA_VENTA, 1), 2, '0')), '%XW%V'), '%Y-%m-%d') AS fecha,
+                        SUM(TOTAL_VENTA) AS total_ventas
+                    FROM venta
+                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 12 WEEK
+                    GROUP BY anio, semana
+                    ORDER BY anio, semana
+                """
+                cursor.execute(query)
+                ventas = cursor.fetchall()
+
+        elif tipo == 'mensual':
+            if fecha:
+                anio, mes = validar_fecha_mensual(fecha)
+                if anio is None or mes is None:
+                    return jsonify({'error': 'Formato de fecha inválido para tipo mensual. Use YYYY-MM'}), 400
+
+                query = """
+                    SELECT 
+                        YEAR(FECHA_VENTA) AS anio,
+                        MONTH(FECHA_VENTA) AS mes,
+                        DATE_FORMAT(FECHA_VENTA, '%Y-%m-01') AS fecha,
+                        SUM(TOTAL_VENTA) AS total_ventas
+                    FROM venta
+                    WHERE YEAR(FECHA_VENTA) = %s AND MONTH(FECHA_VENTA) = %s
+                    GROUP BY anio, mes
+                    ORDER BY anio, mes
+                """
+                cursor.execute(query, (anio, mes))
+                ventas = cursor.fetchall()
+            else:
+                query = """
+                    SELECT 
+                        YEAR(FECHA_VENTA) AS anio,
+                        MONTH(FECHA_VENTA) AS mes,
+                        DATE_FORMAT(FECHA_VENTA, '%Y-%m-01') AS fecha,
+                        SUM(TOTAL_VENTA) AS total_ventas
+                    FROM venta
+                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 12 MONTH
+                    GROUP BY anio, mes
+                    ORDER BY anio, mes
+                """
+                cursor.execute(query)
+                ventas = cursor.fetchall()
+
+        else:
+            return jsonify({'error': 'Tipo de reporte inválido. Use diario, semanal o mensual.'}), 400
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({'ventas': ventas})
+
+    except mysql.connector.Error as err:
+        print("ERROR MYSQL:", err)
+        return jsonify({'error': str(err)}), 500
+
+    
+@app.route('/api/reportes/categorias', methods=['GET'])
+def obtener_categorias_mas_vendidas():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT p.CATEGORIA, SUM(dv.CANTIDAD_VENTA) as total_cantidad_vendida, SUM(dv.SUBTOTAL_VENTA) as total_ventas
+            FROM detalle_venta dv
+            JOIN producto p ON dv.ID_PRODUCTO = p.ID_PRODUCTO
+            JOIN venta v ON dv.ID_VENTA = v.ID_VENTA
+            WHERE v.FECHA_VENTA >= CURDATE() - INTERVAL 30 DAY
+            GROUP BY p.CATEGORIA
+            ORDER BY total_cantidad_vendida DESC
+            LIMIT 10
+        """
+        cursor.execute(query)
+        categorias = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({'categorias': categorias})
+
+    except mysql.connector.Error as err:
+        print("ERROR MYSQL:", err)
+        return jsonify({'error': str(err)}), 500
+
 # ESTO ENDPOINT  PERTENECE A LA CARGA DE EMPLEADOS DE VENTAS__________________________________________________________________________________________
 @app.route('/api/empleados', methods=['GET'])
 def obtener_empleados():
