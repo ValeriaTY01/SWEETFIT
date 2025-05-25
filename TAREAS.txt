@@ -11,3 +11,6 @@
 2.- Tambien tenia pensando que cuando se quiera registrar un cliente y este ya se encuentre en la base de datos
     que recupere sus datos.
 
+************************* REPORTE.HTML *************************
+Estaba viendo que hay problemas en como se manejan las horas en sistema por eso no esta todavia
+terminada esa ventana, tampoco los reportes en PDF y en CVS pero esa ventana me la hago yo.
