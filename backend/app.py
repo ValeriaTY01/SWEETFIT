@@ -15,20 +15,20 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-#db_config = {
-#    'host': os.environ['DB_HOST'],
-#    'user': os.environ['DB_USER'],
-#    'password': os.environ['DB_PASSWORD'],
-#    'database': os.environ['DB_NAME'],
-#    'port': 3306
-#}
 db_config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'root',
-    'password': '',
-    'database': 'sweetfit'
+    'host': os.environ['DB_HOST'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASSWORD'],
+    'database': os.environ['DB_NAME'],
+    'port': 3306
 }
+#db_config = {
+#    'host': 'localhost',
+#    'port': 3307,
+#    'user': 'root',
+#   'password': '',
+#   'database': 'sweetfit'
+#}
 
 # ESTOS ENDPOINTS PERTENECEN A PANEL.HTML___________________________________________________
 
