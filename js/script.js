@@ -81,10 +81,36 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (page === "ventas.html") {
+          document.getElementById('formVenta').addEventListener('submit', function(event) {
+            event.preventDefault();
+            registrarVenta();
+          });
+
+          document.querySelectorAll("#tablaCarrito tbody input[type='number']").forEach(input => {
+            input.addEventListener('input', () => {
+              if (input.value === '' || parseInt(input.value) < 1) {
+                input.value = 1;
+                alert("La cantidad no puede ser negativa ni cero.");
+              }
+            });
+          });
+
+          window.addEventListener("click", function(event) {
+            const modal = document.getElementById("modalSeleccionarProductos");
+            const contenido = document.querySelector(".modal-productos-contenido");
+
+            if (event.target === modal) {
+              cerrarModalProductos();
+            }
+          });
+
+          autocompletarEmpleado();
           cargarHistorialVentas();
           cargarSelectEmpleados(); 
-        }        
-
+          activarAutocompleteCliente();
+        }
+ 
+            
         if (page === "cliente.html") {
           initClienteModal();
           cargarClientes();
@@ -439,11 +465,6 @@ function renderPaginacion(totalPaginas, paginaActual = 1, categoria = "", nombre
   }
 }
 //HASTA AQUI TERMINA LA LOGICA PRODUCTOS.HTML ____________________________________________________________________
-
-// ESTA LOGICA PERTECENE A VENTAS.HTML ___________________________________________________________________________
-let paginaModalActual = 1;
-let totalPaginasModal = 1;
-
 function abrirModalProductos(pagina = 1) {
   const modal = document.getElementById("modalSeleccionarProductos");
   const grid = document.getElementById("gridModalProductos");
@@ -471,24 +492,47 @@ function abrirModalProductos(pagina = 1) {
       productos.forEach(prod => {
         const card = document.createElement("div");
         card.className = "producto-card";
-        card.innerHTML = `
-          <img src="http://localhost:5000/uploads/${prod.imagen}" alt="${prod.nombre}">
-          <h3>${prod.nombre}</h3>
-          <p>Precio: $${parseFloat(prod.precio).toFixed(2)}</p>
-          <p>Stock: ${prod.cantidad}</p>
-          <input type="number" min="1" max="${prod.cantidad}" value="1" id="cantidad-${prod.id}" />
-          <button onclick="agregarProductoAlCarrito(${prod.id}, '${prod.nombre}', ${prod.precio})">Agregar</button>
-        `;
+
+        if (prod.cantidad > 0) {
+          card.innerHTML = `
+            <img src="http://localhost:5000/uploads/${prod.imagen}" alt="${prod.nombre}">
+            <h3>${prod.nombre}</h3>
+            <p>Precio: $${parseFloat(prod.precio).toFixed(2)}</p>
+            <p class="stock-producto">Stock: ${prod.cantidad}</p>
+            <input type="number" min="1" max="${prod.cantidad}" value="1" id="cantidad-${prod.id}" />
+            <button class="boton-agregar" onclick="agregarProductoAlCarrito(${prod.id}, '${prod.nombre}', ${prod.precio})">Agregar</button>
+          `;
+        } else {
+          card.innerHTML = `
+            <img src="http://localhost:5000/uploads/${prod.imagen}" alt="${prod.nombre}">
+            <h3>${prod.nombre}</h3>
+            <p>Precio: $${parseFloat(prod.precio).toFixed(2)}</p>
+            <p class="sin-stock">Sin stock</p>
+            <button class="boton-deshabilitado" disabled>Agregar</button>
+          `;
+        }
+
         grid.appendChild(card);
       });
 
-      renderPaginacionModal();
+      // Validar inputs (números negativos o vacíos)
+      document.querySelectorAll("#gridModalProductos input[type='number']").forEach(input => {
+        input.addEventListener("input", () => {
+          if (input.value === "" || parseInt(input.value) < 1) {
+            input.value = 1;
+            alert("La cantidad no puede ser negativa ni cero.");
+          }
+        });
+      });
 
-      buscador.oninput = () => {
-        abrirModalProductos(1);
-      };
-      
+      renderPaginacionModal();
+    })
+    .catch(err => {
+      grid.innerHTML = "<p>Error al cargar productos.</p>";
+      console.error("Error al cargar productos:", err);
     });
+
+  buscador.oninput = () => abrirModalProductos(1);
 }
 
 function cerrarModalProductos() {
@@ -499,6 +543,25 @@ function agregarProductoAlCarrito(id, nombre, precio) {
   const cantidadInput = document.getElementById(`cantidad-${id}`);
   const cantidad = parseInt(cantidadInput.value);
   const tabla = document.querySelector("#tablaCarrito tbody");
+
+  const card = cantidadInput.closest(".producto-card");
+  const stockElemento = card.querySelector(".stock-producto");
+  const botonAgregar = card.querySelector("button");
+
+  let stockDisponible = parseInt(cantidadInput.max);
+
+  if (stockDisponible <= 0) {
+    alert("No hay stock disponible para este producto.");
+    return;
+  }
+  if (cantidad < 1) {
+    alert("La cantidad debe ser al menos 1.");
+    return;
+  }
+  if (cantidad > stockDisponible) {
+    alert(`La cantidad excede el stock disponible (${stockDisponible}).`);
+    return;
+  }
 
   const yaExiste = Array.from(tabla.children).some(row => row.dataset.id == id);
   if (yaExiste) {
@@ -511,7 +574,7 @@ function agregarProductoAlCarrito(id, nombre, precio) {
   row.dataset.id = id;
   row.innerHTML = `
     <td>${nombre}</td>
-    <td><input type="number" value="${cantidad}" min="1" onchange="actualizarSubtotal(this, ${precio})" /></td>
+    <td><input type="number" value="${cantidad}" min="1" max="${stockDisponible}" onchange="actualizarSubtotal(this, ${precio})" /></td>
     <td>$${precio.toFixed(2)}</td>
     <td class="subtotal">$${subtotal}</td>
     <td><button onclick="eliminarProductoDelCarrito(this)">🗑️</button></td>
@@ -519,6 +582,25 @@ function agregarProductoAlCarrito(id, nombre, precio) {
   tabla.appendChild(row);
 
   actualizarTotalVenta();
+
+  stockDisponible -= cantidad;
+  cantidadInput.max = stockDisponible;
+
+  if (stockDisponible === 0) {
+    cantidadInput.value = 0;
+    cantidadInput.disabled = true;
+    botonAgregar.disabled = true;
+    botonAgregar.textContent = "Sin stock";
+    botonAgregar.classList.add("boton-deshabilitado");
+    stockElemento.textContent = "Sin stock";
+  } else {
+    stockElemento.textContent = `Stock: ${stockDisponible}`;
+    cantidadInput.value = 1;
+    cantidadInput.disabled = false;
+    botonAgregar.disabled = false;
+    botonAgregar.textContent = "Agregar";
+    botonAgregar.classList.remove("boton-deshabilitado");
+  }
 }
 
 function actualizarSubtotal(input, precio) {
@@ -530,8 +612,7 @@ function actualizarSubtotal(input, precio) {
 }
 
 function eliminarProductoDelCarrito(btn) {
-  const fila = btn.closest("tr");
-  fila.remove();
+  btn.closest("tr").remove();
   actualizarTotalVenta();
 }
 
@@ -570,12 +651,12 @@ function cargarHistorialVentas() {
     .then(ventas => {
       const tabla = document.querySelector("#tablaVentas tbody");
       tabla.innerHTML = "";
-    
+
       if (!ventas || ventas.length === 0) {
         tabla.innerHTML = "<tr><td colspan='6'>No hay ventas registradas.</td></tr>";
         return;
       }
-    
+
       ventas.forEach(venta => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -588,44 +669,29 @@ function cargarHistorialVentas() {
         `;
         tabla.appendChild(row);
       });
-    })    
+    })
     .catch(err => {
       console.error("Error al cargar historial:", err);
     });
 }
+
 function cerrarModalDetalleVenta() {
-  const modal = document.getElementById("modalDetalleVenta");
-  if (modal) {
-    modal.style.display = "none";
-  }
+  document.getElementById("modalDetalleVenta").style.display = "none";
 }
-function mostrarTicketVenta(id_venta){
+
+function mostrarTicketVenta(id_venta) {
   fetch(`http://localhost:5000/api/ventas/${id_venta}?t=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
-        if (!data || !data.detallesV) {
-          throw new Error("Datos de venta inválidos o no encontrados.");
-        }
-      const detallesV = data.detallesV;
-      const fechaVenta = new Date(data.fecha);
-      const cliente = data.cliente || 'Cliente desconocido';
-      const ordenVenta = data.orden;
-      const empleado = data.empleado;
+      if (!data || !data.detallesV) throw new Error("Datos de venta inválidos o no encontrados.");
 
-      const options = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      };
-      const fechaFormateada = fechaVenta.toLocaleDateString('es-ES', options);
+      const { detallesV, cliente = 'Cliente desconocido', orden, empleado, fecha } = data;
+      const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
 
-      let  total = 0;
-      if  (detallesV.length > 0) {
-        total = detallesV.reduce((sum, item) => sum + parseFloat(item.SUBTOTAL_VENTA), 0);
-      }
-
+      let total = detallesV.reduce((sum, item) => sum + parseFloat(item.SUBTOTAL_VENTA), 0);
       let html = `
         <div class="ticket-header">
           <img src="img/logosweet.png" class="only-print" alt="Logo">
@@ -633,7 +699,7 @@ function mostrarTicketVenta(id_venta){
         </div>
         <p class="ticket-date">${fechaFormateada}</p>
         <div class="customer-info">
-          <p><strong>Orden de Venta:</strong> ${ordenVenta}</p>
+          <p><strong>Orden de Venta:</strong> ${orden}</p>
           <p><strong>Cliente:</strong> ${cliente}</p>
           <p><strong>Empleada:</strong> ${empleado}</p>
         </div>
@@ -650,20 +716,22 @@ function mostrarTicketVenta(id_venta){
             </thead>
             <tbody>
       `;
-      if (detallesV.length === 0){
-         html += `<tr><td colspan="4" class="no-items">No hay productos registrados en esta venta.</td></tr>`;
-      }else{
+
+      if (detallesV.length === 0) {
+        html += `<tr><td colspan="4" class="no-items">No hay productos registrados en esta venta.</td></tr>`;
+      } else {
         detallesV.forEach(prod => {
           html += `
             <tr>
-                  <td class="col-qty">${prod.CANTIDAD_VENTA}</td>
-                  <td class="col-prod">${prod.PRODUCTO}</td>
-                  <td class="col-price">$${parseFloat(prod.PRECIO_UNITARIO).toFixed(2)}</td>
-                  <td class="col-subtotal">$${parseFloat(prod.SUBTOTAL_VENTA).toFixed(2)}</td>
+              <td class="col-qty">${prod.CANTIDAD_VENTA}</td>
+              <td class="col-prod">${prod.PRODUCTO}</td>
+              <td class="col-price">$${parseFloat(prod.PRECIO_UNITARIO).toFixed(2)}</td>
+              <td class="col-subtotal">$${parseFloat(prod.SUBTOTAL_VENTA).toFixed(2)}</td>
             </tr>
           `;
         });
       }
+
       html += `
             </tbody>
           </table>
@@ -679,17 +747,15 @@ function mostrarTicketVenta(id_venta){
           </div>
         </div>
       `;
+
       const modal = document.getElementById("modalDetalleVenta");
       const contenido = document.getElementById("detalleVentaContenido");
       contenido.innerHTML = html;
       modal.style.display = "block";
+
       setTimeout(() => {
         const boton = document.getElementById("btnImprimirTicket");
-        if (boton) {
-          boton.addEventListener("click", () => imprimirTicket("detalleVentaContenido"));
-        } else {
-          console.error("No se encontró el botón de imprimir.");
-        }
+        boton?.addEventListener("click", () => imprimirTicket("detalleVentaContenido"));
       }, 0);
     })
     .catch(error => {
@@ -701,13 +767,12 @@ function mostrarTicketVenta(id_venta){
     });
 }
 
-
-
 function filtrarVentas() {
-  const fechaInicio = document.getElementById("filtroFechaInicio").value;
-  const fechaFin = document.getElementById("filtroFechaFin").value;
-  const tipoVenta = document.getElementById("filtroTipo").value;
-  const idEmpleado = document.getElementById("selectEmpleado").value;
+  const fechaInicio = document.getElementById("filtroFechaInicio")?.value || '';
+  const fechaFin = document.getElementById("filtroFechaFin")?.value || '';
+  const tipoVenta = document.getElementById("filtroTipo")?.value || '';
+  const empleadoSelect = document.getElementById("selectEmpleadoVenta");
+  const idEmpleado = empleadoSelect ? empleadoSelect.value : '';
 
   let url = `http://localhost:5000/api/ventas/historial?`;
 
@@ -754,7 +819,7 @@ function filtrarVentas() {
 
 function cargarSelectEmpleados() {
   const selects = document.querySelectorAll("#selectEmpleado, #selectEmpleadoVenta");
-  if (selects.length === 0) return;
+  if (!selects.length) return;
 
   fetch("http://localhost:5000/api/empleados")
     .then(res => res.json())
@@ -772,6 +837,160 @@ function cargarSelectEmpleados() {
     .catch(err => {
       console.error("Error al cargar empleados:", err);
     });
+}
+
+function obtenerCarrito() {
+  const filas = document.querySelectorAll("#tablaCarrito tbody tr");
+  const carrito = [];
+
+  for (const fila of filas) {
+    const cantidadInput = fila.querySelector("input[type='number']");
+    let cantidad = parseInt(cantidadInput.value);
+
+    if (isNaN(cantidad) || cantidad < 1) {
+      alert("La cantidad de productos no puede ser negativa ni cero.");
+      cantidadInput.focus();
+      return null; // Abortamos por error
+    }
+
+    const id = parseInt(fila.dataset.id);
+    const nombre = fila.cells[0].textContent;
+    const precio = parseFloat(fila.cells[2].textContent.replace("$", ""));
+    const subtotal = parseFloat(fila.cells[3].textContent.replace("$", ""));
+
+    carrito.push({
+      id,
+      nombre,
+      cantidad,
+      precio,
+      subtotal
+    });
+  }
+
+  return carrito;
+}
+
+function registrarVenta() {
+  const carrito = obtenerCarrito();
+  if (!carrito) return; // Si hay error de cantidades, no sigue
+
+  const tipoVenta = document.getElementById("tipoVenta").value;
+  const empleado = document.getElementById("empleado").value;
+
+  const cliente = {
+    nombre: document.getElementById("nombreCliente").value,
+    apellido_paterno: document.getElementById("apellidoPaterno").value,
+    apellido_materno: document.getElementById("apellidoMaterno").value,
+    direccion: document.getElementById("direccionCliente").value,
+    telefono: document.getElementById("telefonoCliente").value
+  };
+
+  if (carrito.length === 0) {
+    alert("No hay productos en el carrito");
+    return;
+  }
+
+  fetch("http://localhost:5000/api/ventas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tipo_venta: tipoVenta,
+      empleado: empleado,
+      cliente: cliente,
+      carrito: carrito
+    })
+  })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.mensaje || "Venta registrada correctamente");
+      limpiarFormularioVenta();
+      cargarHistorialVentas(); 
+    })
+    .catch(err => {
+      console.error("Error al registrar venta:", err);
+      alert("Error al registrar la venta");
+    });
+}
+
+function activarAutocompleteCliente() {
+  const inputNombre = document.getElementById('nombreCliente');
+  const listaSugerencias = document.createElement('ul');
+  listaSugerencias.style.position = 'absolute';
+  listaSugerencias.style.backgroundColor = '#fff';
+  listaSugerencias.style.listStyle = 'none';
+  listaSugerencias.style.padding = '0';
+  listaSugerencias.style.margin = '0';
+  listaSugerencias.style.maxHeight = '150px';
+  listaSugerencias.style.overflowY = 'auto';
+  listaSugerencias.style.width = inputNombre.offsetWidth + 'px';
+  listaSugerencias.style.zIndex = '1000';
+  inputNombre.parentNode.appendChild(listaSugerencias);
+
+  inputNombre.addEventListener('input', () => {
+    const valor = inputNombre.value.trim();
+    if (valor.length < 2) {
+      listaSugerencias.innerHTML = '';
+      return;
+    }
+
+    fetch(`http://localhost:5000/api/clientes?nombre=${encodeURIComponent(valor)}`)
+      .then(res => res.json())
+      .then(clientes => {
+        listaSugerencias.innerHTML = '';
+        clientes.forEach(cliente => {
+          const li = document.createElement('li');
+          li.style.padding = '5px';
+          li.style.cursor = 'pointer';
+          li.textContent = `${cliente.NOMBRE} ${cliente.APELLIDO_PATERNO} ${cliente.APELLIDO_MATERNO}`;
+          li.addEventListener('click', () => {
+            // Autocompletar campos
+            inputNombre.value = cliente.NOMBRE;
+            document.getElementById('apellidoPaterno').value = cliente.APELLIDO_PATERNO;
+            document.getElementById('apellidoMaterno').value = cliente.APELLIDO_MATERNO;
+            document.getElementById('direccionCliente').value = cliente.DIRECCION;
+            document.getElementById('telefonoCliente').value = cliente.TELEFONO;
+            listaSugerencias.innerHTML = '';
+          });
+          listaSugerencias.appendChild(li);
+        });
+      })
+      .catch(err => {
+        console.error('Error buscando clientes:', err);
+        listaSugerencias.innerHTML = '';
+      });
+  });
+
+  // Ocultar la lista si se hace clic fuera
+  document.addEventListener('click', e => {
+    if (!inputNombre.contains(e.target) && !listaSugerencias.contains(e.target)) {
+      listaSugerencias.innerHTML = '';
+    }
+  });
+}
+
+function limpiarFormularioVenta() {
+  document.getElementById("formVenta").reset();
+  document.querySelector("#tablaCarrito tbody").innerHTML = "";
+  document.getElementById("totalVenta").textContent = "0.00";
+}
+
+function autocompletarEmpleado() {
+  const usuarioJSON = localStorage.getItem("usuario");
+  if (!usuarioJSON) return;
+
+  try {
+    const data = JSON.parse(usuarioJSON);
+
+    if (data.usuario && data.usuario.nombre && data.usuario.apellidos) {
+      const empleadoInput = document.getElementById("empleado");
+      if (empleadoInput) {
+        empleadoInput.value = `${data.usuario.nombre} ${data.usuario.apellidos}`;
+        empleadoInput.readOnly = true;
+      }
+    }
+  } catch (error) {
+    console.error("Error al parsear el usuario guardado en localStorage:", error);
+  }
 }
 
 //HASTA AQUI TERMINA LA LOGICA VENTAS.HTML ____________________________________________________________________

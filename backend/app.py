@@ -100,6 +100,7 @@ def obtener_productos():
 @app.route('/login.html')
 def login_page():
     return send_from_directory('.', 'login.html')
+
 #Ruta del login
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -343,6 +344,88 @@ def obtener_ventas():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
     
+
+@app.route('/api/ventas', methods=['POST'])
+def registrar_venta():
+    try:
+        data = request.get_json()
+
+        cliente = data.get("cliente")
+        carrito = data.get("carrito")
+        empleado = data.get("empleado")
+        tipo_venta = data.get("tipo_venta")
+
+        if not carrito or not cliente or not empleado or not tipo_venta:
+            return jsonify({"error": "Datos incompletos"}), 400
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # 1. Insertar cliente o buscar si ya existe
+        query_cliente = """
+            INSERT INTO cliente (NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, DIRECCION, TELEFONO)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query_cliente, (
+            cliente["nombre"],
+            cliente["apellido_paterno"],
+            cliente["apellido_materno"],
+            cliente["direccion"],
+            cliente["telefono"]
+        ))
+        id_cliente = cursor.lastrowid
+
+        # 2. Obtener ID del empleado (supongo que llega como nombre completo)
+        query_empleado = "SELECT ID_EMPLEADO FROM empleado WHERE CONCAT(NOMBRE, ' ', APELLIDOS) = %s"
+        cursor.execute(query_empleado, (empleado,))
+        empleado_result = cursor.fetchone()
+        if not empleado_result:
+            conn.rollback()
+            return jsonify({"error": "Empleado no encontrado"}), 400
+        id_empleado = empleado_result[0]
+
+        # 3. Calcular total
+        total = sum(p['subtotal'] for p in carrito)
+
+        # 4. Insertar venta
+        query_venta = """
+            INSERT INTO venta (ID_CLIENTE, TIPO_VENTA, TOTAL_VENTA, FECHA_VENTA, ID_EMPLEADO)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        fecha_venta = datetime.now()
+        cursor.execute(query_venta, (
+            id_cliente,
+            tipo_venta,
+            total,
+            fecha_venta,
+            id_empleado
+        ))
+        id_venta = cursor.lastrowid
+
+        # 5. Insertar productos en detalle_venta
+        for producto in carrito:
+            query_detalle = """
+                INSERT INTO detalle_venta (SUBTOTAL_VENTA, CANTIDAD_VENTA, ID_VENTA, ID_PRODUCTO)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query_detalle, (
+                producto["subtotal"],
+                producto["cantidad"],
+                id_venta,
+                producto["id"]
+            ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"mensaje": "Venta registrada correctamente", "id_venta": id_venta})
+
+    except mysql.connector.Error as err:
+        print("Error al registrar venta:", err)
+        return jsonify({"error": str(err)}), 500
+
+    
 # Obtener historial de ventas con filtros
 @app.route('/api/ventas/historial', methods=['GET'])
 def historial_ventas():
@@ -435,6 +518,30 @@ def  detalle_venta(id_venta):
     except mysql.connector.Error as err:
         print("Error al consultar detalles de la venta:", err)
         return jsonify({'error': str(err)}), 500
+    
+@app.route('/api/clientes', methods=['GET'])
+def buscar_cliente():
+    nombre_query = request.args.get('nombre', '').strip()
+    if not nombre_query:
+        return jsonify([])  # Sin nombre no buscamos nada
+
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor(dictionary=True)
+
+    # Buscar clientes cuyo nombre empiece con lo escrito
+    query = """
+        SELECT NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, DIRECCION, TELEFONO
+        FROM cliente
+        WHERE NOMBRE LIKE %s
+        LIMIT 5
+    """
+    cursor.execute(query, (nombre_query + '%',))
+    resultados = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(resultados)
 
 # ESTOS ENDPOINTS PERTENECEN A CLIENTE.HTML __________________________________________________________________________________________
 # Ruta para obtener todos los clientes

@@ -473,6 +473,17 @@ fieldset.grupo-cliente legend {
   margin: 0.2rem 0;
 }
 
+.input-deshabilitado {
+  background-color: #f0f0f0;
+  color: #666666;
+  border: 1px solid #ccc;
+  cursor: not-allowed;
+  user-select: none;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
 .btn-agregar-producto {
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
@@ -489,6 +500,11 @@ fieldset.grupo-cliente legend {
   justify-content: space-between;
   align-items: center;
   margin-top: 1.5rem;
+}
+
+.sin-stock {
+  color: red;
+  font-weight: bold;
 }
 
 .lista-productos-seleccionados {
@@ -527,74 +543,143 @@ fieldset.grupo-cliente legend {
 }
 
 .modal-productos-contenido {
-  background: var(--color-blanco);
+  background: var(--color-terciario);
   padding: 2rem;
-  border-radius: 12px;
-  max-width: 800px;
+  border-radius: 16px;
+  max-width: 850px;
   width: 95%;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--sombra-media);
   position: relative;
+  border: 2px solid var(--color-borde);
 }
 
+/* Icono de cierre más visible */
 .modal-productos .cerrar-modal {
   position: absolute;
   top: 15px;
   right: 20px;
-  font-size: 1.5rem;
+  font-size: 2rem;
   color: var(--color-texto);
   cursor: pointer;
+  transition: color 0.3s;
+}
+.modal-productos .cerrar-modal:hover {
+  color: var(--color-primario);
+}
+
+.modal-header {
+  margin-bottom: 1.5rem;
+}
+
+.titulo-modal {
+  font-size: 1.6rem;
+  margin-bottom: 0.8rem;
+  color: var(--color-texto);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 #buscador-modal {
-  width: 97%;
-  padding: 0.8rem;
-  margin-bottom: 1rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
   border: 1px solid var(--color-borde);
-  border-radius: 10px;
+  border-radius: 12px;
+  background: var(--color-blanco);
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+#buscador-modal:focus {
+  border-color: var(--color-primario);
+  outline: none;
 }
 
-.grid-modal-productos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
-}
-
+/* Tarjetas de producto */
 .card-producto-modal {
   border: 1px solid var(--color-borde);
-  border-radius: 10px;
-  padding: 1rem;
+  border-radius: 14px;
+  padding: 1.2rem;
   text-align: center;
-  background: var(--color-blanco);
-  transition: box-shadow 0.2s;
+  background: var(--color-terciario);
+  transition: all 0.3s ease;
+  box-shadow: var(--sombra-suave);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .card-producto-modal:hover {
-  box-shadow: var(--sombra-suave);
+  box-shadow: var(--sombra-media);
+  transform: translateY(-4px);
 }
 
 .card-producto-modal img {
   width: 100%;
-  height: 120px;
+  height: 140px;
   object-fit: cover;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
+  border-radius: 10px;
+  margin-bottom: 0.8rem;
 }
 
-.card-producto-modal button {
-  background: var(--color-primario);
-  color: var(--color-blanco);
+.producto-card button {
+  background-color: var(--color-primario);
+  color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  margin-top: 0.5rem;
   border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  font-size: 0.95rem;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  margin-top: 0.5rem;
 }
 
+.producto-card button:hover {
+  background-color: var(--color-primario-hover);
+  transform: scale(1.05);
+}
+
+/* --- Botón Deshabilitado (sin stock) --- */
+.producto-card .boton-deshabilitado {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
+  border-radius: 8px;
+}
+
+/* --- Input de cantidad --- */
+.producto-card input[type="number"] {
+  width: 94%;
+  padding: 0.4rem;
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.producto-card input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); /* sombra verde */
+}
+
+/* Grilla */
+.grid-modal-productos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Más ancho */
+  gap: 1.2rem;
+  padding: 1rem 0.5rem;
+}
+
+/* Paginación */
 .contenedor-paginacion-modal {
-  margin-top: 1rem;
+  margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid var(--color-borde);
   display: flex;
@@ -604,21 +689,20 @@ fieldset.grupo-cliente legend {
 .paginacion-modal-productos {
   display: flex;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .paginacion-modal-productos button {
-  padding: 6px 14px;
-  font-weight: 600;
+  padding: 8px 16px;
+  font-weight: bold;
   border: 1px solid var(--color-borde);
   background-color: var(--color-gris);
   color: var(--color-texto);
+  border-radius: 12px;
   cursor: pointer;
-  border-radius: 8px;
   transition: all 0.2s ease-in-out;
 }
-
 .paginacion-modal-productos button:hover,
 .paginacion-modal-productos button.activo {
   background-color: var(--color-primario);
@@ -719,6 +803,16 @@ fieldset.grupo-cliente legend {
     height: auto;
   }
 }
+
+#modalSeleccionarProductos {
+  animation: fadeInModal 0.3s ease-out;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* _____________________________________________________________________________*/
 
 /* ======== ESTILOS DE LA INTERFAZ DE CLIENTES ======== */
