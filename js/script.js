@@ -995,7 +995,7 @@ function autocompletarEmpleado() {
   } catch (error) {
     console.error("Error al parsear el usuario guardado en localStorage:", error);
   }
-}
+} 
 //HASTA AQUI TERMINA LA LOGICA VENTAS.HTML ____________________________________________________________________
 
 // ESTA LOGICA PERTECENE A CLIENTE.HTML ___________________________________________________________________________

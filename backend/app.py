@@ -9,11 +9,11 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 CORS(app)
 
-# Carpeta para guardar imágenes subidas
-UPLOAD_FOLDER = 'uploads'
+# Carpeta absoluta para guardar imágenes subidas
+UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db_config = {
     'host': 'localhost',
