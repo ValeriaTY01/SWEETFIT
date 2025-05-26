@@ -15,20 +15,20 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-#db_config = {
-#    'host': os.environ['DB_HOST'],
-#    'user': os.environ['DB_USER'],
-#    'password': os.environ['DB_PASSWORD'],
-#    'database': os.environ['DB_NAME'],
-#    'port': 3306
-#}
 db_config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'root',
-    'password': '',
-    'database': 'sweetfit'
+    'host': os.environ['DB_HOST'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASSWORD'],
+    'database': os.environ['DB_NAME'],
+    'port': 3306
 }
+#db_config = {
+#    'host': 'localhost',
+#    'port': 3307,
+#    'user': 'root',
+#   'password': '',
+#   'database': 'sweetfit'
+#}
 
 # ESTOS ENDPOINTS PERTENECEN A PANEL.HTML___________________________________________________
 
@@ -366,10 +366,10 @@ def obtener_ventas():
                 v.FECHA_VENTA,
                 v.TIPO_VENTA,
                 v.TOTAL_VENTA,
-                CONCAT(e.NOMBRE, ' ', e.APELLIDOS) AS EMPLEADO,
+                CONCAT(e.NOMBRE, ' ', e.APELLIDOS) AS empledo,
                 CONCAT(c.NOMBRE, ' ', c.APELLIDO_PATERNO) AS CLIENTE
             FROM venta v
-            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
+            LEFT JOIN EMPLEADO e ON v.ID_EMPLEADO = e.ID_EMPLEADO
             LEFT JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
             ORDER BY v.FECHA_VENTA DESC
         """
@@ -390,10 +390,10 @@ def registrar_venta():
 
         cliente = data.get("cliente")
         carrito = data.get("carrito")
-        empleado = data.get("empleado")
+        EMPLEADO = data.get("EMPLEADO")
         tipo_venta = data.get("tipo_venta")
 
-        if not carrito or not cliente or not empleado or not tipo_venta:
+        if not carrito or not cliente or not EMPLEADO or not tipo_venta:
             return jsonify({"error": "Datos incompletos"}), 400
 
         conn = mysql.connector.connect(**db_config)
@@ -413,14 +413,14 @@ def registrar_venta():
         ))
         id_cliente = cursor.lastrowid
 
-        # 2. Obtener ID del empleado (supongo que llega como nombre completo)
-        query_empleado = "SELECT ID_EMPLEADO FROM empleado WHERE CONCAT(NOMBRE, ' ', APELLIDOS) = %s"
-        cursor.execute(query_empleado, (empleado,))
-        empleado_result = cursor.fetchone()
-        if not empleado_result:
+        # 2. Obtener ID del EMPLEADO (supongo que llega como nombre completo)
+        query_EMPLEADO = "SELECT ID_EMPLEADO FROM EMPLEADO WHERE CONCAT(NOMBRE, ' ', APELLIDOS) = %s"
+        cursor.execute(query_EMPLEADO, (EMPLEADO,))
+        EMPLEADO_result = cursor.fetchone()
+        if not EMPLEADO_result:
             conn.rollback()
-            return jsonify({"error": "Empleado no encontrado"}), 400
-        id_empleado = empleado_result[0]
+            return jsonify({"error": "EMPLEADO no encontrado"}), 400
+        id_EMPLEADO = EMPLEADO_result[0]
 
         # 3. Calcular total
         total = sum(p['subtotal'] for p in carrito)
@@ -436,7 +436,7 @@ def registrar_venta():
             tipo_venta,
             total,
             fecha_venta,
-            id_empleado
+            id_EMPLEADO
         ))
         id_venta = cursor.lastrowid
 
@@ -471,7 +471,7 @@ def historial_ventas():
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         tipo_venta = request.args.get('tipo_venta')
-        id_empleado = request.args.get('empleado')
+        id_EMPLEADO = request.args.get('EMPLEADO')
 
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
@@ -479,10 +479,10 @@ def historial_ventas():
         query = """
             SELECT v.ID_VENTA, v.FECHA_VENTA, v.TOTAL_VENTA, v.TIPO_VENTA,
                    c.NOMBRE AS nombre_cliente,
-                   e.NOMBRE AS nombre_empleado
+                   e.NOMBRE AS nombre_EMPLEADO
             FROM venta v
             LEFT JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
-            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
+            LEFT JOIN EMPLEADO e ON v.ID_EMPLEADO = e.ID_EMPLEADO
             WHERE 1=1
         """
         params = []
@@ -495,9 +495,9 @@ def historial_ventas():
             query += " AND v.TIPO_VENTA = %s"
             params.append(tipo_venta)
 
-        if id_empleado:
+        if id_EMPLEADO:
             query += " AND v.ID_EMPLEADO = %s"
-            params.append(id_empleado)
+            params.append(id_EMPLEADO)
 
         query += " ORDER BY v.FECHA_VENTA DESC"
 
@@ -522,7 +522,7 @@ def  detalle_venta(id_venta):
         E.NOMBRE AS 'NOMBRE_EMPLEADO'
         FROM venta V
         LEFT JOIN cliente C ON V.ID_CLIENTE = C.ID_CLIENTE
-        JOIN empleado E ON V.ID_EMPLEADO = E.ID_EMPLEADO
+        JOIN EMPLEADO E ON V.ID_EMPLEADO = E.ID_EMPLEADO
         WHERE V.ID_VENTA = %s;
         """ 
         cursor.execute(query_venta, (id_venta,))
@@ -533,7 +533,7 @@ def  detalle_venta(id_venta):
         orden_venta = venta['ORDEN_VENTA']
         fecha_venta = venta['FECHA_VENTA'].strftime("%Y-%m-%dT%H:%M:%S")
         nombre_cliente = venta['NOMBRE_CLIENTE'] or "General"
-        nombre_empleado = venta['NOMBRE_EMPLEADO']
+        nombre_EMPLEADO = venta['NOMBRE_EMPLEADO']
 
         query_detallesV ="""
         SELECT DV.CANTIDAD_VENTA, PR.NOMBRE AS PRODUCTO, PR.PRECIO AS 'PRECIO_UNITARIO', DV.SUBTOTAL_VENTA
@@ -549,7 +549,7 @@ def  detalle_venta(id_venta):
             'orden': orden_venta,
             'fecha': fecha_venta,
             'cliente': nombre_cliente,
-            'empleado': nombre_empleado,
+            'EMPLEADO': nombre_EMPLEADO,
             'detallesV': detallesV
         })
 
@@ -772,18 +772,18 @@ def registrar_compra():
     try:
         data = request.json
         proveedor_id = data.get('proveedor')
-        empleado_id = data.get('empleado')
+        EMPLEADO_id = data.get('EMPLEADO')
         productos = data.get('productos')
 
-        if not proveedor_id or not productos or not empleado_id:
-            return jsonify({'error': 'Faltan datos de proveedor, empleado o productos'}), 400
+        if not proveedor_id or not productos or not EMPLEADO_id:
+            return jsonify({'error': 'Faltan datos de proveedor, EMPLEADO o productos'}), 400
 
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
         cursor.execute(
             "INSERT INTO compra (ID_PROVEEDOR, ID_EMPLEADO, TOTAL_COMPRA) VALUES (%s, %s, %s)",
-            (proveedor_id, empleado_id, 0)  # Total temporal
+            (proveedor_id, EMPLEADO_id, 0)  # Total temporal
         )
         id_compra = cursor.lastrowid
 
@@ -864,7 +864,7 @@ def detalle_compra(id_compra):
         SELECT C.FECHA_COMPRA, P.NOMBRE AS PROVEEDOR_NOMBRE, C.ID_COMPRA AS ORDEN_COMPRA, E.NOMBRE AS NOMBRE_EMPLEADO
         FROM compra C
         JOIN proveedor P ON C.ID_PROVEEDOR = P.ID_PROVEEDOR
-        JOIN empleado E ON C.ID_EMPLEADO = E.ID_EMPLEADO
+        JOIN EMPLEADO E ON C.ID_EMPLEADO = E.ID_EMPLEADO
         WHERE C.ID_COMPRA = %s;
         """
         cursor.execute(query_compra, (id_compra,))
@@ -876,7 +876,7 @@ def detalle_compra(id_compra):
         fecha_compra = compra['FECHA_COMPRA'].strftime("%Y-%m-%dT%H:%M:%S")
         nombre_proveedor = compra['PROVEEDOR_NOMBRE']
         orden_compra = compra['ORDEN_COMPRA']
-        nombre_empleado = compra['NOMBRE_EMPLEADO']
+        nombre_EMPLEADO = compra['NOMBRE_EMPLEADO']
 
 
         query_detalles = """
@@ -895,7 +895,7 @@ def detalle_compra(id_compra):
             'fecha': fecha_compra,
             'proveedor': nombre_proveedor,
             'orden': orden_compra,
-            'empleado': nombre_empleado,
+            'EMPLEADO': nombre_EMPLEADO,
             'detalles': detalles
         })
 
@@ -1078,35 +1078,35 @@ def obtener_categorias_mas_vendidas():
         return jsonify({'error': str(err)}), 500
 
 # ESTO ENDPOINT  PERTENECE A LA CARGA DE EMPLEADOS DE VENTAS__________________________________________________________________________________________
-@app.route('/api/empleados', methods=['GET'])
-def obtener_empleados():
+@app.route('/api/EMPLEADOs', methods=['GET'])
+def obtener_EMPLEADOs():
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS FROM empleado")
-        empleados = cursor.fetchall()
+        cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS FROM EMPLEADO")
+        EMPLEADOs = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        return jsonify(empleados)
+        return jsonify(EMPLEADOs)
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
 
 # ESTOS ENPOINTS PERTENECEN A LA VENTANA DE CONFIGURACION.HTML _____________________________________
-# Endpoint para mostrar todos los empleados
-@app.route('/empleados', methods=['GET'])
-def mostrar_empleados():
+# Endpoint para mostrar todos los EMPLEADOs
+@app.route('/EMPLEADOs', methods=['GET'])
+def mostrar_EMPLEADOs():
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS, EMAIL, PUESTO FROM EMPLEADO")
-    empleados = cursor.fetchall()
+    EMPLEADOs = cursor.fetchall()
     cursor.close()
     conn.close()
-    return jsonify(empleados)
+    return jsonify(EMPLEADOs)
 
-# Endpoint para agregar un nuevo empleado
-@app.route('/empleados', methods=['POST'])
-def agregar_empleado():
+# Endpoint para agregar un nuevo EMPLEADO
+@app.route('/EMPLEADOs', methods=['POST'])
+def agregar_EMPLEADO():
     data = request.json
     nombre = data.get('nombre')
     apellidos = data.get('apellidos')
@@ -1120,7 +1120,7 @@ def agregar_empleado():
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
 
-    # Insertar nuevo empleado
+    # Insertar nuevo EMPLEADO
     sql = "INSERT INTO EMPLEADO (NOMBRE, APELLIDOS, EMAIL, CONTRASEÑA, PUESTO, ID_EMPLEADO) VALUES (%s, %s, %s, %s, %s, NULL)"
     try:
         cursor.execute(sql, (nombre, apellidos, email, contraseña, puesto))
@@ -1133,10 +1133,10 @@ def agregar_empleado():
     cursor.close()
     conn.close()
 
-    return jsonify({'message': 'Empleado agregado exitosamente'}), 201
+    return jsonify({'message': 'EMPLEADO agregado exitosamente'}), 201
 
-@app.route('/empleados/<int:id>', methods=['PUT'])
-def actualizar_empleado(id):
+@app.route('/EMPLEADOs/<int:id>', methods=['PUT'])
+def actualizar_EMPLEADO(id):
     data = request.json
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
@@ -1148,21 +1148,21 @@ def actualizar_empleado(id):
             sql = """UPDATE EMPLEADO SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, PUESTO=%s WHERE ID_EMPLEADO=%s"""
             cursor.execute(sql, (data['nombre'], data['apellidos'], data['email'], data['puesto'], id))
         conn.commit()
-        return jsonify({"message": "Empleado actualizado exitosamente"})
+        return jsonify({"message": "EMPLEADO actualizado exitosamente"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         cursor.close()
         conn.close()
 
-@app.route('/empleados/<int:id>', methods=['DELETE'])
-def eliminar_empleado(id):
+@app.route('/EMPLEADOs/<int:id>', methods=['DELETE'])
+def eliminar_EMPLEADO(id):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM EMPLEADO WHERE ID_EMPLEADO = %s", (id,))
         conn.commit()
-        return jsonify({"message": "Empleado eliminado exitosamente"})
+        return jsonify({"message": "EMPLEADO eliminado exitosamente"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
