@@ -1054,6 +1054,83 @@ def obtener_empleados():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
 
+# ESTOS ENPOINTS PERTENECEN A LA VENTANA DE CONFIGURACION.HTML _____________________________________
+# Endpoint para mostrar todos los empleados
+@app.route('/empleados', methods=['GET'])
+def mostrar_empleados():
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS, EMAIL, PUESTO FROM EMPLEADO")
+    empleados = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(empleados)
+
+# Endpoint para agregar un nuevo empleado
+@app.route('/empleados', methods=['POST'])
+def agregar_empleado():
+    data = request.json
+    nombre = data.get('nombre')
+    apellidos = data.get('apellidos')
+    email = data.get('email')
+    contraseña = data.get('password')
+    puesto = data.get('puesto')
+
+    if not (nombre and apellidos and email and contraseña and puesto):
+        return jsonify({'error': 'Faltan datos obligatorios'}), 400
+
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+
+    # Insertar nuevo empleado
+    sql = "INSERT INTO EMPLEADO (NOMBRE, APELLIDOS, EMAIL, CONTRASEÑA, PUESTO, ID_EMPLEADO) VALUES (%s, %s, %s, %s, %s, NULL)"
+    try:
+        cursor.execute(sql, (nombre, apellidos, email, contraseña, puesto))
+        conn.commit()
+    except mysql.connector.Error as err:
+        cursor.close()
+        conn.close()
+        return jsonify({'error': str(err)}), 500
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({'message': 'Empleado agregado exitosamente'}), 201
+
+@app.route('/empleados/<int:id>', methods=['PUT'])
+def actualizar_empleado(id):
+    data = request.json
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    try:
+        if data.get('password'):
+            sql = """UPDATE EMPLEADO SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, CONTRASEÑA=%s, PUESTO=%s WHERE ID_EMPLEADO=%s"""
+            cursor.execute(sql, (data['nombre'], data['apellidos'], data['email'], data['password'], data['puesto'], id))
+        else:
+            sql = """UPDATE EMPLEADO SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, PUESTO=%s WHERE ID_EMPLEADO=%s"""
+            cursor.execute(sql, (data['nombre'], data['apellidos'], data['email'], data['puesto'], id))
+        conn.commit()
+        return jsonify({"message": "Empleado actualizado exitosamente"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/empleados/<int:id>', methods=['DELETE'])
+def eliminar_empleado(id):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM EMPLEADO WHERE ID_EMPLEADO = %s", (id,))
+        conn.commit()
+        return jsonify({"message": "Empleado eliminado exitosamente"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 # Ruta de prueba
 @app.route('/api/test')
 def test_conexion():

@@ -109,8 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cargarSelectEmpleados(); 
           activarAutocompleteCliente();
         }
- 
-            
+   
         if (page === "cliente.html") {
           initClienteModal();
           cargarClientes();
@@ -146,6 +145,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (page === "reportes.html") {
           inicializarReportes();
         }
+
+        if (page === "configuracion.html") {
+          cargarEmpleados();
+          configurarFormularioEmpleado();
+        } 
       })
       .catch(() => {
         contentArea.innerHTML = "<p>Error al cargar la página.</p>";
@@ -1966,4 +1970,155 @@ function inicializarReportes() {
       renderizarGrafica(tipoReporte.value);
     });
   });
+}
+
+// ESTA LOGICA PERTECENE A CONFIGURACION.HTML ___________________________________________________________________________
+function cargarEmpleados() {
+  const empleadosTable = document.getElementById("empleadosTable");
+  if (!empleadosTable) return;
+
+  fetch("http://localhost:5000/empleados")
+    .then(res => res.json())
+    .then(data => {
+      empleadosTable.innerHTML = "";
+      if (!data || data.length === 0) {
+        empleadosTable.innerHTML = `<tr><td colspan="3">No hay empleados registrados.</td></tr>`;
+        return;
+      }
+      data.forEach(emp => {
+        const tr = document.createElement("tr");
+        tr.dataset.id = emp.ID_EMPLEADO;
+        tr.innerHTML = `
+          <td>${emp.NOMBRE} ${emp.APELLIDOS}</td>
+          <td>${emp.EMAIL}</td>
+          <td>${emp.PUESTO}</td>
+        `;
+        tr.addEventListener("dblclick", () => editarEmpleado(emp));
+        empleadosTable.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error("Error cargando empleados:", err);
+      empleadosTable.innerHTML = `<tr><td colspan="3">Error al cargar empleados.</td></tr>`;
+    });
+}
+
+function configurarFormularioEmpleado() {
+  const form = document.getElementById("altaEmpleadoForm");
+  if (!form) return;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const idEditando = form.dataset.editandoId || null;
+
+    const formData = {
+      nombre: form.nombre.value.trim(),
+      apellidos: form.apellidos.value.trim(),
+      email: form.email.value.trim(),
+      puesto: form.puesto.value
+    };
+
+    const password = form.password.value.trim();
+    if (password !== "") {
+      formData.password = password;
+    }
+
+    const url = idEditando ? `http://localhost:5000/empleados/${idEditando}` : "http://localhost:5000/empleados";
+    const method = idEditando ? "PUT" : "POST";
+
+    fetch(url, {
+      method: method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Error al guardar empleado");
+      return res.json();
+    })
+    .then(data => {
+      alert(data.message || "Empleado guardado correctamente");
+      resetFormulario(form);
+      cargarEmpleados();
+    })
+    .catch(err => {
+      alert("Error al guardar empleado");
+      console.error(err);
+    });
+  });
+}
+
+function editarEmpleado(emp) {
+  const form = document.getElementById("altaEmpleadoForm");
+  if (!form) return;
+
+  form.nombre.value = emp.NOMBRE;
+  form.apellidos.value = emp.APELLIDOS;
+  form.email.value = emp.EMAIL;
+  form.puesto.value = emp.PUESTO;
+  form.password.value = ""; // No mostrar contraseña
+
+  form.dataset.editandoId = emp.ID_EMPLEADO;
+  form.querySelector(".btn-guardar").textContent = "Actualizar Empleado";
+  form.querySelector(".btn-guardar").classList.add("editando");
+
+  // Agregar botón Eliminar si no existe
+  if (!document.getElementById("btnEliminarEmpleado")) {
+    const btnEliminar = document.createElement("button");
+    btnEliminar.id = "btnEliminarEmpleado";
+    btnEliminar.textContent = "Eliminar Empleado";
+    btnEliminar.type = "button";
+    btnEliminar.className = "btn-eliminar";
+    form.appendChild(btnEliminar);
+
+    btnEliminar.addEventListener("click", () => {
+      if (confirm("¿Seguro que deseas eliminar este empleado?")) {
+        fetch(`http://localhost:5000/empleados/${emp.ID_EMPLEADO}`, {
+          method: "DELETE"
+        })
+          .then(res => {
+            if (!res.ok) throw new Error("Error al eliminar empleado");
+            return res.json();
+          })
+          .then(data => {
+            alert(data.message || "Empleado eliminado");
+            resetFormulario(form);
+            cargarEmpleados();
+          })
+          .catch(err => {
+            alert("Error al eliminar empleado");
+            console.error(err);
+          });
+      }
+    });
+  }
+
+  // Agregar botón Cancelar si no existe
+  if (!document.getElementById("btnCancelarEdicion")) {
+    const btnCancelar = document.createElement("button");
+    btnCancelar.id = "btnCancelarEdicion";
+    btnCancelar.textContent = "Cancelar Edición";
+    btnCancelar.type = "button";
+    btnCancelar.className = "btn-cancelar";
+    form.appendChild(btnCancelar);
+
+    btnCancelar.addEventListener("click", () => {
+      resetFormulario(form);
+    });
+  }
+}
+
+// Función para resetear el formulario y limpiar estado de edición
+function resetFormulario(form) {
+  form.reset();
+  form.querySelector(".btn-guardar").textContent = "Guardar Empleado";
+  form.querySelector(".btn-guardar").classList.remove("editando");
+  delete form.dataset.editandoId;
+
+  // Eliminar botones Eliminar y Cancelar si existen
+  const btnEliminar = document.getElementById("btnEliminarEmpleado");
+  if (btnEliminar) btnEliminar.remove();
+
+  const btnCancelar = document.getElementById("btnCancelarEdicion");
+  if (btnCancelar) btnCancelar.remove();
 }

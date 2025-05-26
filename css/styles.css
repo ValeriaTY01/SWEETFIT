@@ -113,7 +113,7 @@ body {
   
   .main {
     flex: 1;
-    padding: 30px;
+    padding: 5px;
     margin-left: 220px;
     transition: margin-left 0.3s ease;
   }
@@ -1540,7 +1540,6 @@ body {
   padding: 2rem;
 }
 
-/* TITULOS */
 h3 {
   color: var(--color-primario-oscuro);
   font-weight: 600;
@@ -1551,7 +1550,6 @@ h3 {
   gap: 0.5rem;
 }
 
-/* CABECERA DE ACCIONES */
 .reportes-header {
   display: flex;
   justify-content: space-between;
@@ -1568,7 +1566,6 @@ h3 {
   flex-wrap: wrap;
 }
 
-/* SELECTOR DE TIPO DE REPORTE */
 #tipoReporte {
   padding: 0.6rem 1.2rem;
   border-radius: 10px;
@@ -1588,7 +1585,6 @@ h3 {
   box-shadow: 0 0 0 3px rgba(92, 138, 43, 0.2);
 }
 
-/* BOTONES DE DESCARGA */
 .btn-descargar {
   background-color: var(--color-primario);
   color: var(--color-blanco);
@@ -1610,7 +1606,6 @@ h3 {
   box-shadow: var(--sombra-media);
 }
 
-/* TARJETAS DE CONTENIDO */
 .grafica-reportes,
 .comparativa-categorias {
   background-color: var(--color-blanco);
@@ -1626,18 +1621,15 @@ h3 {
   transform: translateY(-4px);
 }
 
-/* GRÁFICAS */
 canvas {
   width: 100% !important;
   height: auto !important;
 }
 
-/* CONTENEDOR DE LA GRÁFICA DE CATEGORÍAS */
 .grafica-categorias {
   padding-top: 1rem;
 }
 
-/* RESPONSIVO */
 @media (max-width: 768px) {
   .reportes-header {
     flex-direction: column;
@@ -1656,64 +1648,71 @@ canvas {
   }
 }
 
-/* ========== ESTILOS CONFIGURACIÓN ========== */
+/* ======== ESTILOS DE CONFIGURACION ======== */
+
 .contenido-empleados {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-  padding: 2rem;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  align-items: start;
+  max-width: 1000px;
+  width: 100%;
 }
 
-.formulario-alta,
-.tabla-empleados {
+.formulario-alta {
   background: var(--color-blanco);
-  padding: 1.5rem;
-  border-radius: 12px;
+  padding: 1rem;
+  border-radius: 8px;
   box-shadow: var(--sombra-suave);
+  font-size: 13px;
+  max-width: 320px;
 }
 
-.formulario-alta h3,
-.tabla-empleados h3 {
-  color: var(--color-primario-oscuro);
+.formulario-alta h3 {
+  font-size: 16px;
   margin-bottom: 1rem;
+  color: var(--color-primario-oscuro);
+  text-align: center;
 }
 
-form label {
-  display: block;
-  margin-top: 1rem;
+.formulario-alta form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.formulario-alta label {
   font-weight: 600;
+  font-size: 13px;
   color: var(--color-texto);
 }
 
-form input,
-form select {
-  width: 92%;
-  padding: 0.6rem 1rem;
-  margin-top: 0.3rem;
+.formulario-alta input,
+.formulario-alta select {
+  padding: 0.4rem 0.5rem;
   border: 1px solid var(--color-borde);
-  border-radius: 8px;
-  background: var(--color-blanco);
-  transition: 0.3s;
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: var(--color-blanco);
+  transition: border 0.2s, box-shadow 0.2s;
 }
 
-form input:focus,
-form select:focus {
+.formulario-alta input:focus,
+.formulario-alta select:focus {
   outline: none;
   border-color: var(--color-primario);
-  box-shadow: 0 0 0 3px rgba(74, 112, 35, 0.2);
+  box-shadow: 0 0 0 1.5px rgba(149, 193, 31, 0.2);
 }
 
 .btn-guardar {
   background-color: var(--color-primario);
   color: var(--color-blanco);
-  padding: 0.8rem;
-  margin-top: 1.5rem;
-  width: 100%;
+  padding: 0.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 13px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-guardar:hover {
@@ -1721,24 +1720,96 @@ form select:focus {
   box-shadow: var(--sombra-media);
 }
 
-.tabla-empleados table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
+.tabla-empleados {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  overflow-x: auto;
 }
 
-.tabla-empleados th,
-.tabla-empleados td {
-  text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--color-gris);
+.tabla-empleados h3 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: #4a4a4a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tabla-empleados table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .tabla-empleados thead {
-  background-color: var(--color-primario);
-  color: var(--color-blanco);
+  background-color: #95c11f;
+  color: white;
+  text-align: left;
+  font-size: 14px;
 }
 
-.tabla-empleados tr:hover {
-  background-color: var(--color-terciario);
+.tabla-empleados th, .tabla-empleados td {
+  padding: 14px 16px;
+  font-size: 14px;
 }
+
+.tabla-empleados tbody tr:nth-child(even) {
+  background-color: #f7f9f8;
+}
+
+.tabla-empleados tbody tr:hover {
+  background-color: #e8f5d8;
+  transition: 0.3s;
+}
+
+.tabla-empleados td {
+  color: #333;
+}
+
+.btn-eliminar {
+  background-color: #dc3545;
+  color: white;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-eliminar:hover {
+  background-color: #a71d2a;
+}
+
+.btn-cancelar {
+  background-color: #6c757d;
+  color: white;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-cancelar:hover {
+  background-color: #4e555b;
+}
+
+@media (max-width: 900px) {
+  .contenido-empleados {
+    grid-template-columns: 1fr;
+  }
+
+  .formulario-alta, .tabla-empleados {
+    width: 100%;
+  }
+}
+
