@@ -39,19 +39,15 @@ def dashboard():
 
     hoy = date.today()
 
-    # 1. Total de ventas del día
     cursor.execute("SELECT IFNULL(SUM(TOTAL_VENTA), 0) AS ventas_dia FROM venta WHERE DATE(FECHA_VENTA) = %s", (hoy,))
     ventas_dia = cursor.fetchone()['ventas_dia']
 
-    # 2. Clientes registrados
     cursor.execute("SELECT COUNT(*) AS clientes_registrados FROM cliente")
     clientes_registrados = cursor.fetchone()['clientes_registrados']
 
-    # ✅ 3. Total de productos registrados (no suma del inventario)
     cursor.execute("SELECT COUNT(*) AS productos_disponibles FROM producto")
     productos_disponibles = cursor.fetchone()['productos_disponibles']
 
-    # 4. Última compra a proveedores
     cursor.execute("SELECT MAX(FECHA_COMPRA) AS ultima_compra FROM compra")
     ultima_compra = cursor.fetchone()['ultima_compra']
     ultima_compra = ultima_compra.strftime('%d/%m/%Y') if ultima_compra else 'Sin registro'
