@@ -519,7 +519,7 @@ def  detalle_venta(id_venta):
         print("Error al consultar detalles de la venta:", err)
         return jsonify({'error': str(err)}), 500
     
-@app.route('/api/clientes', methods=['GET'])
+@app.route('/api/cliente', methods=['GET'])
 def buscar_cliente():
     nombre_query = request.args.get('nombre', '').strip()
     if not nombre_query:

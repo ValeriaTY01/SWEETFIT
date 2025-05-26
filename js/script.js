@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (page === "cliente.html") {
           initClienteModal();
           cargarClientes();
-  
+
           const buscadorClientes = document.getElementById("buscadorClientes");
           if (buscadorClientes) {
             buscadorClientes.addEventListener("input", () => {
@@ -937,7 +937,7 @@ function activarAutocompleteCliente() {
       return;
     }
 
-    fetch(`http://localhost:5000/api/clientes?nombre=${encodeURIComponent(valor)}`)
+    fetch(`http://localhost:5000/api/cliente?nombre=${encodeURIComponent(valor)}`)
       .then(res => res.json())
       .then(clientes => {
         listaSugerencias.innerHTML = '';
@@ -996,7 +996,6 @@ function autocompletarEmpleado() {
     console.error("Error al parsear el usuario guardado en localStorage:", error);
   }
 }
-
 //HASTA AQUI TERMINA LA LOGICA VENTAS.HTML ____________________________________________________________________
 
 // ESTA LOGICA PERTECENE A CLIENTE.HTML ___________________________________________________________________________
