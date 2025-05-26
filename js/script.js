@@ -65,6 +65,10 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(html => {
         contentArea.innerHTML = html;
         title.textContent = text;
+
+        if (page === "panel.html") {
+          cargarDashboard(); // <-- AQUÍ SE CARGA EL DASHBOARD AL ENTRAR AL PANEL
+        }
   
         if (page === "productos.html") {
           initProductoModal();
@@ -202,6 +206,21 @@ function initLogin() {
       alert("Error al conectar con el servidor");
     });
   });
+}
+
+// ESTA LOGICA PERTECENE A PANEL.HTML ___________________________________________________________________________
+function cargarDashboard() {
+  fetch("http://localhost:5000/api/dashboard")
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById("ventas-dia").textContent = `$${data.ventas_dia.toFixed(2)}`;
+      document.getElementById("clientes-registrados").textContent = data.clientes_registrados;
+      document.getElementById("inventario").textContent = `${data.productos_disponibles} productos`;
+      document.getElementById("ultima-compra").textContent = data.ultima_compra || "Sin registro";
+    })
+    .catch(error => {
+      console.error("Error al cargar el dashboard:", error);
+    });
 }
 // ESTA LOGICA PERTECENE A PRODUCTOS.HTML ___________________________________________________________________________
 let categoriaActual = "";

@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 import mysql.connector
 from flask_cors import CORS
 import os
-from datetime import datetime
+from datetime import datetime, date
 import re
 from werkzeug.utils import secure_filename
 
@@ -15,20 +15,55 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-db_config = {
-    'host': os.environ['DB_HOST'],
-    'user': os.environ['DB_USER'],
-    'password': os.environ['DB_PASSWORD'],
-    'database': os.environ['DB_NAME'],
-    'port': 3306
-}
 #db_config = {
-#    'host': 'localhost',
-#   'port': 3307,
-#    'user': 'root',
-#    'password': '',
-#    'database': 'sweetfit'
+#    'host': os.environ['DB_HOST'],
+#    'user': os.environ['DB_USER'],
+#    'password': os.environ['DB_PASSWORD'],
+#    'database': os.environ['DB_NAME'],
+#    'port': 3306
 #}
+db_config = {
+    'host': 'localhost',
+    'port': 3307,
+    'user': 'root',
+    'password': '',
+    'database': 'sweetfit'
+}
+
+# ESTOS ENDPOINTS PERTENECEN A PANEL.HTML___________________________________________________
+
+@app.route('/api/dashboard')
+def dashboard():
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor(dictionary=True)
+
+    hoy = date.today()
+
+    # 1. Total de ventas del día
+    cursor.execute("SELECT IFNULL(SUM(TOTAL_VENTA), 0) AS ventas_dia FROM venta WHERE DATE(FECHA_VENTA) = %s", (hoy,))
+    ventas_dia = cursor.fetchone()['ventas_dia']
+
+    # 2. Clientes registrados
+    cursor.execute("SELECT COUNT(*) AS clientes_registrados FROM cliente")
+    clientes_registrados = cursor.fetchone()['clientes_registrados']
+
+    # ✅ 3. Total de productos registrados (no suma del inventario)
+    cursor.execute("SELECT COUNT(*) AS productos_disponibles FROM producto")
+    productos_disponibles = cursor.fetchone()['productos_disponibles']
+
+    # 4. Última compra a proveedores
+    cursor.execute("SELECT MAX(FECHA_COMPRA) AS ultima_compra FROM compra")
+    ultima_compra = cursor.fetchone()['ultima_compra']
+    ultima_compra = ultima_compra.strftime('%d/%m/%Y') if ultima_compra else 'Sin registro'
+
+    conn.close()
+
+    return jsonify({
+        'ventas_dia': float(ventas_dia),
+        'clientes_registrados': clientes_registrados,
+        'productos_disponibles': productos_disponibles,
+        'ultima_compra': ultima_compra
+    })
 
 # ESTOS ENDPOINTS PERTENECEN A PRODUCTOS.HTML Y VENTAS.HTML___________________________________________________
 
