@@ -1657,13 +1657,24 @@ function actualizarListaProductosCompra() {
   });
 }
 
+function obtenerEmpleadoLogueado() {
+  return localStorage.getItem("empleadoId");
+}
+
 function guardarCompra(e) {
   e.preventDefault();
+
   const proveedorId = document.getElementById("proveedorSelect").value;
   if (!proveedorId || productosCompra.length === 0) return alert("Selecciona proveedor y agrega productos");
 
-  // Aquí se debera obtener el ID del empleado cuando se haga el login
-  const empleadoId = obtenerEmpleadoLogueado();
+  // Obtener ID del empleado desde localStorage
+  const usuarioData = JSON.parse(localStorage.getItem("usuario"));
+  const empleadoId = usuarioData?.usuario?.id;
+
+  if (!empleadoId) {
+    alert("No se pudo identificar al empleado logueado");
+    return;
+  }
 
   const data = {
     proveedor: proveedorId,
@@ -1680,6 +1691,10 @@ function guardarCompra(e) {
     .then(() => {
       cerrarModalCompra();
       cargarHistorialCompras();
+    })
+    .catch(err => {
+      console.error("Error al guardar la compra:", err);
+      alert("Error al guardar la compra");
     });
 }
 
