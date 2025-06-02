@@ -15,20 +15,21 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-db_config = {
-    'host': os.environ['DB_HOST'],
-    'user': os.environ['DB_USER'],
-    'password': os.environ['DB_PASSWORD'],
-    'database': os.environ['DB_NAME'],
-    'port': 3306
-}
+
 #db_config = {
-#    'host': 'localhost',
-#    'port': 3307,
-#    'user': 'root',
-#   'password': '',
-#   'database': 'sweetfit'
+#    'host': os.environ['DB_HOST'],
+#    'user': os.environ['DB_USER'],
+#    'password': os.environ['DB_PASSWORD'],
+#    'database': os.environ['DB_NAME'],
+#    'port': 3306
 #}
+db_config = {
+    'host': 'localhost',
+    'port': 3307,
+    'user': 'root',
+   'password': '',
+   'database': 'sweetfit'
+}
 
 # ESTOS ENDPOINTS PERTENECEN A PANEL.HTML___________________________________________________
 
@@ -159,7 +160,7 @@ def login():
             return jsonify({
         "mensaje": "Login exitoso",
         "usuario": {
-        "id": user["ID_empleado"],
+        "id": user["ID_EMPLEADO"],
         "nombre": user["NOMBRE"],
         "apellidos": user["APELLIDOS"],
         "email": user["EMAIL"],
@@ -366,10 +367,11 @@ def obtener_ventas():
                 v.FECHA_VENTA,
                 v.TIPO_VENTA,
                 v.TOTAL_VENTA,
-                CONCAT(e.NOMBRE, ' ', e.APELLIDOS) AS empledo,
+                v.ESTADO,
+                CONCAT(e.NOMBRE, ' ', e.APELLIDOS) AS empleado,
                 CONCAT(c.NOMBRE, ' ', c.APELLIDO_PATERNO) AS CLIENTE
             FROM venta v
-            LEFT JOIN empleado e ON v.ID_empleado = e.ID_empleado
+            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
             LEFT JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
             ORDER BY v.FECHA_VENTA DESC
         """
@@ -391,7 +393,20 @@ def registrar_venta():
         cliente = data.get("cliente")
         carrito = data.get("carrito")
         empleado = data.get("empleado")
-        tipo_venta = data.get("tipo_venta")
+        TIPOS_VENTA_VALIDOS = {"Local", "Domicilio", "App"}
+
+        tipo_venta_raw = data.get("tipo_venta", "")
+        tipo_venta = tipo_venta_raw.strip().capitalize()
+
+        if tipo_venta not in TIPOS_VENTA_VALIDOS:
+            return jsonify({"error": f"Tipo de venta inválido. Valores permitidos: {', '.join(TIPOS_VENTA_VALIDOS)}"}), 400
+
+
+        estado = data.get("estado", "FINALIZADA").upper()
+
+        ESTADOS_VALIDOS = {"FINALIZADA", "EN ESPERA", "CANCELADA"}
+        if estado not in ESTADOS_VALIDOS:
+            return jsonify({"error": f"Estado inválido. Valores permitidos: {', '.join(ESTADOS_VALIDOS)}"}), 400
 
         if not carrito or not cliente or not empleado or not tipo_venta:
             return jsonify({"error": "Datos incompletos"}), 400
@@ -414,7 +429,7 @@ def registrar_venta():
         id_cliente = cursor.lastrowid
 
         # 2. Obtener ID del empleado (supongo que llega como nombre completo)
-        query_empleado = "SELECT ID_empleado FROM empleado WHERE CONCAT(NOMBRE, ' ', APELLIDOS) = %s"
+        query_empleado = "SELECT ID_EMPLEADO FROM empleado WHERE CONCAT(NOMBRE, ' ', APELLIDOS) = %s"
         cursor.execute(query_empleado, (empleado,))
         empleado_result = cursor.fetchone()
         if not empleado_result:
@@ -427,8 +442,8 @@ def registrar_venta():
 
         # 4. Insertar venta
         query_venta = """
-            INSERT INTO venta (ID_CLIENTE, TIPO_VENTA, TOTAL_VENTA, FECHA_VENTA, ID_empleado)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO venta (ID_CLIENTE, TIPO_VENTA, TOTAL_VENTA, FECHA_VENTA, ID_EMPLEADO, ESTADO)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
         fecha_venta = datetime.now()
         cursor.execute(query_venta, (
@@ -436,7 +451,8 @@ def registrar_venta():
             tipo_venta,
             total,
             fecha_venta,
-            id_empleado
+            id_empleado,
+            estado
         ))
         id_venta = cursor.lastrowid
 
@@ -462,6 +478,164 @@ def registrar_venta():
     except mysql.connector.Error as err:
         print("Error al registrar venta:", err)
         return jsonify({"error": str(err)}), 500
+    
+
+@app.route('/api/ventas/<int:id_venta>', methods=['PUT'])
+def actualizar_venta_completa(id_venta):
+    try:
+        data = request.get_json()
+
+        nuevo_estado = data.get("estado", "").upper()
+        tipo_venta_raw = data.get("tipo_venta") or data.get("tipoVenta") or ""
+        cliente_data = data.get("cliente", {})
+        carrito_data = data.get("carrito", [])
+
+        ESTADOS_VALIDOS = {"FINALIZADA", "EN ESPERA", "CANCELADA"}
+        TIPOS_VENTA_VALIDOS = {"Local", "Domicilio", "App"}
+
+        tipo_venta = None
+        if tipo_venta_raw:
+            tipo_venta_formateado = tipo_venta_raw.strip().capitalize()
+            if tipo_venta_formateado not in TIPOS_VENTA_VALIDOS:
+                return jsonify({"error": f"Tipo de venta inválido. Debe ser uno de: {', '.join(TIPOS_VENTA_VALIDOS)}"}), 400
+            tipo_venta = tipo_venta_formateado
+
+        if nuevo_estado and nuevo_estado not in ESTADOS_VALIDOS:
+            return jsonify({"error": f"Estado inválido. Debe ser uno de: {', '.join(ESTADOS_VALIDOS)}"}), 400
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        # Obtener cliente asociado
+        cursor.execute("SELECT ID_CLIENTE FROM venta WHERE ID_VENTA = %s", (id_venta,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": "Venta no encontrada"}), 404
+        id_cliente = result["ID_CLIENTE"]
+
+        # Obtener detalles antiguos (productos y cantidades)
+        cursor.execute("SELECT ID_PRODUCTO, CANTIDAD_VENTA FROM detalle_venta WHERE ID_VENTA = %s", (id_venta,))
+        detalles_antiguos = cursor.fetchall()
+        cantidades_anteriores = {d["ID_PRODUCTO"]: d["CANTIDAD_VENTA"] for d in detalles_antiguos}
+
+        # *** DEVOLVER STOCK ANTIGUO PRIMERO ***
+        for detalle in detalles_antiguos:
+            cursor.execute(
+                "UPDATE producto SET CANTIDAD = CANTIDAD + %s WHERE ID_PRODUCTO = %s",
+                (detalle["CANTIDAD_VENTA"], detalle["ID_PRODUCTO"])
+            )
+
+        # VALIDAR STOCK NUEVO
+        for item in carrito_data:
+            id_producto = item.get("ID_PRODUCTO") or item.get("id") or item.get("id_producto")
+            cantidad_nueva = item.get("cantidad")
+
+            if id_producto is None or cantidad_nueva is None:
+                return jsonify({"error": f"Producto con datos faltantes: {item}"}), 400
+
+            cursor.execute("SELECT CANTIDAD FROM producto WHERE ID_PRODUCTO = %s", (id_producto,))
+            producto = cursor.fetchone()
+            if not producto:
+                return jsonify({"error": f"Producto con ID {id_producto} no encontrado"}), 404
+
+            stock_actual = producto["CANTIDAD"]
+
+            if cantidad_nueva > stock_actual:
+                return jsonify({"error": f"Stock insuficiente para el producto {id_producto} (Disponible: {stock_actual}, Pedido: {cantidad_nueva})"}), 400
+
+        # ACTUALIZAR CLIENTE
+        if cliente_data:
+            cursor.execute("""
+                UPDATE cliente SET NOMBRE = %s, APELLIDO_PATERNO = %s, APELLIDO_MATERNO = %s,
+                DIRECCION = %s, TELEFONO = %s WHERE ID_CLIENTE = %s
+            """, (
+                cliente_data.get("nombre"),
+                cliente_data.get("apellido_paterno"),
+                cliente_data.get("apellido_materno"),
+                cliente_data.get("direccion"),
+                cliente_data.get("telefono"),
+                id_cliente
+            ))
+
+        # ACTUALIZAR ESTADO Y TIPO VENTA
+        if nuevo_estado:
+            cursor.execute("UPDATE venta SET ESTADO = %s WHERE ID_VENTA = %s", (nuevo_estado, id_venta))
+        if tipo_venta:
+            cursor.execute("UPDATE venta SET TIPO_VENTA = %s WHERE ID_VENTA = %s", (tipo_venta, id_venta))
+
+        # ELIMINAR DETALLES ANTIGUOS (ya devolvimos stock antes)
+        cursor.execute("DELETE FROM detalle_venta WHERE ID_VENTA = %s", (id_venta,))
+
+        # INSERTAR NUEVOS DETALLES Y DESCONTAR STOCK
+        insert_detalle_query = """
+            INSERT INTO detalle_venta (ID_VENTA, ID_PRODUCTO, CANTIDAD_VENTA, SUBTOTAL_VENTA)
+            VALUES (%s, %s, %s, %s)
+        """
+        for item in carrito_data:
+            id_producto = item.get("ID_PRODUCTO") or item.get("id") or item.get("id_producto")
+            cantidad = item.get("cantidad")
+            subtotal = item.get("subtotal")
+
+            cursor.execute(insert_detalle_query, (id_venta, id_producto, cantidad, subtotal))
+
+            # Descontar stock con protección para no pasar a negativo
+            cursor.execute("""
+                UPDATE producto
+                SET CANTIDAD = CASE
+                    WHEN CANTIDAD >= %s THEN CANTIDAD - %s
+                    ELSE 0
+                END
+                WHERE ID_PRODUCTO = %s
+            """, (cantidad, cantidad, id_producto))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"mensaje": f"Venta {id_venta} actualizada correctamente"})
+
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+
+
+@app.route('/api/ventas/<int:id_venta>', methods=['GET'])
+def obtener_detalles_venta(id_venta):
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        # Obtener info cliente y venta
+        query_venta = """
+            SELECT v.ID_VENTA, v.FECHA_VENTA, v.TIPO_VENTA, v.TOTAL_VENTA, v.ESTADO,
+                   c.ID_CLIENTE, c.NOMBRE AS cliente_nombre, c.APELLIDO_PATERNO AS cliente_apellido_paterno,
+                   c.APELLIDO_MATERNO AS cliente_apellido_materno, c.DIRECCION AS cliente_direccion,
+                   c.TELEFONO AS cliente_telefono
+            FROM venta v
+            JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
+            WHERE v.ID_VENTA = %s
+        """
+        cursor.execute(query_venta, (id_venta,))
+        venta = cursor.fetchone()
+        if not venta:
+            return jsonify({"error": "Venta no encontrada"}), 404
+
+        # Obtener detalles del carrito (productos)
+        query_detalle = """
+            SELECT dv.ID_PRODUCTO, p.NOMBRE, dv.CANTIDAD_VENTA AS cantidad, p.PRECIO, dv.SUBTOTAL_VENTA AS subtotal
+            FROM detalle_venta dv
+            JOIN producto p ON dv.ID_PRODUCTO = p.ID_PRODUCTO
+            WHERE dv.ID_VENTA = %s
+        """
+        cursor.execute(query_detalle, (id_venta,))
+        carrito = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"venta": venta, "carrito": carrito})
+
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
 
     
 # Obtener historial de ventas con filtros
@@ -477,12 +651,12 @@ def historial_ventas():
         cursor = conn.cursor(dictionary=True)
 
         query = """
-            SELECT v.ID_VENTA, v.FECHA_VENTA, v.TOTAL_VENTA, v.TIPO_VENTA,
+            SELECT v.ID_VENTA, v.FECHA_VENTA, v.TOTAL_VENTA, v.TIPO_VENTA, v.ESTADO,
                    c.NOMBRE AS nombre_cliente,
                    e.NOMBRE AS nombre_empleado
             FROM venta v
             LEFT JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
-            LEFT JOIN empleado e ON v.ID_empleado = e.ID_empleado
+            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
             WHERE 1=1
         """
         params = []
@@ -496,7 +670,7 @@ def historial_ventas():
             params.append(tipo_venta)
 
         if id_empleado:
-            query += " AND v.ID_empleado = %s"
+            query += " AND v.ID_EMPLEADO = %s"
             params.append(id_empleado)
 
         query += " ORDER BY v.FECHA_VENTA DESC"
@@ -519,10 +693,10 @@ def  detalle_venta(id_venta):
         cursor = conn.cursor(dictionary = True)
         query_venta= """
         SELECT V.ID_VENTA AS ORDEN_VENTA, V.FECHA_VENTA, CONCAT(C.NOMBRE, ' ', C.APELLIDO_PATERNO, ' ', C.APELLIDO_MATERNO) AS 'NOMBRE_CLIENTE',
-        E.NOMBRE AS 'NOMBRE_empleado'
+        E.NOMBRE AS 'NOMBRE_EMPLEADO'
         FROM venta V
         LEFT JOIN cliente C ON V.ID_CLIENTE = C.ID_CLIENTE
-        JOIN empleado E ON V.ID_empleado = E.ID_empleado
+        JOIN empleado E ON V.ID_EMPLEADO = E.ID_EMPLEADO
         WHERE V.ID_VENTA = %s;
         """ 
         cursor.execute(query_venta, (id_venta,))
@@ -533,7 +707,7 @@ def  detalle_venta(id_venta):
         orden_venta = venta['ORDEN_VENTA']
         fecha_venta = venta['FECHA_VENTA'].strftime("%Y-%m-%dT%H:%M:%S")
         nombre_cliente = venta['NOMBRE_CLIENTE'] or "General"
-        nombre_empleado = venta['NOMBRE_empleado']
+        nombre_empleado = venta['NOMBRE_EMPLEADO']
 
         query_detallesV ="""
         SELECT DV.CANTIDAD_VENTA, PR.NOMBRE AS PRODUCTO, PR.PRECIO AS 'PRECIO_UNITARIO', DV.SUBTOTAL_VENTA
@@ -556,6 +730,7 @@ def  detalle_venta(id_venta):
     except mysql.connector.Error as err:
         print("Error al consultar detalles de la venta:", err)
         return jsonify({'error': str(err)}), 500
+    
     
 @app.route('/api/cliente', methods=['GET'])
 def buscar_cliente():
@@ -782,7 +957,7 @@ def registrar_compra():
         cursor = conn.cursor()
 
         cursor.execute(
-            "INSERT INTO compra (ID_PROVEEDOR, ID_empleado, TOTAL_COMPRA) VALUES (%s, %s, %s)",
+            "INSERT INTO compra (ID_PROVEEDOR, ID_EMPLEADO, TOTAL_COMPRA) VALUES (%s, %s, %s)",
             (proveedor_id, empleado_id, 0)  # Total temporal
         )
         id_compra = cursor.lastrowid
@@ -861,10 +1036,10 @@ def detalle_compra(id_compra):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
         query_compra = """
-        SELECT C.FECHA_COMPRA, P.NOMBRE AS PROVEEDOR_NOMBRE, C.ID_COMPRA AS ORDEN_COMPRA, E.NOMBRE AS NOMBRE_empleado
+        SELECT C.FECHA_COMPRA, P.NOMBRE AS PROVEEDOR_NOMBRE, C.ID_COMPRA AS ORDEN_COMPRA, E.NOMBRE AS NOMBRE_EMPLEADO
         FROM compra C
         JOIN proveedor P ON C.ID_PROVEEDOR = P.ID_PROVEEDOR
-        JOIN empleado E ON C.ID_empleado = E.ID_empleado
+        JOIN empleado E ON C.ID_EMPLEADO = E.ID_EMPLEADO
         WHERE C.ID_COMPRA = %s;
         """
         cursor.execute(query_compra, (id_compra,))
@@ -876,7 +1051,7 @@ def detalle_compra(id_compra):
         fecha_compra = compra['FECHA_COMPRA'].strftime("%Y-%m-%dT%H:%M:%S")
         nombre_proveedor = compra['PROVEEDOR_NOMBRE']
         orden_compra = compra['ORDEN_COMPRA']
-        nombre_empleado = compra['NOMBRE_empleado']
+        nombre_empleado = compra['NOMBRE_EMPLEADO']
 
 
         query_detalles = """
@@ -1083,7 +1258,7 @@ def obtener_empleados():
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT ID_empleado, NOMBRE, APELLIDOS FROM empleado")
+        cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS FROM empleado")
         empleados = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -1098,7 +1273,7 @@ def obtener_empleados():
 def mostrar_empleados():
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT ID_empleado, NOMBRE, APELLIDOS, EMAIL, PUESTO FROM empleado")
+    cursor.execute("SELECT ID_EMPLEADO, NOMBRE, APELLIDOS, EMAIL, PUESTO FROM empleado")
     empleados = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -1121,7 +1296,7 @@ def agregar_empleado():
     cursor = conn.cursor()
 
     # Insertar nuevo empleado
-    sql = "INSERT INTO empleado (NOMBRE, APELLIDOS, EMAIL, CONTRASEÑA, PUESTO, ID_empleado) VALUES (%s, %s, %s, %s, %s, NULL)"
+    sql = "INSERT INTO empleado (NOMBRE, APELLIDOS, EMAIL, CONTRASEÑA, PUESTO, ID_EMPLEADO) VALUES (%s, %s, %s, %s, %s, NULL)"
     try:
         cursor.execute(sql, (nombre, apellidos, email, contraseña, puesto))
         conn.commit()
@@ -1142,10 +1317,10 @@ def actualizar_empleado(id):
     cursor = conn.cursor()
     try:
         if data.get('password'):
-            sql = """UPDATE empleado SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, CONTRASEÑA=%s, PUESTO=%s WHERE ID_empleado=%s"""
+            sql = """UPDATE empleado SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, CONTRASEÑA=%s, PUESTO=%s WHERE ID_EMPLEADO=%s"""
             cursor.execute(sql, (data['nombre'], data['apellidos'], data['email'], data['password'], data['puesto'], id))
         else:
-            sql = """UPDATE empleado SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, PUESTO=%s WHERE ID_empleado=%s"""
+            sql = """UPDATE empleado SET NOMBRE=%s, APELLIDOS=%s, EMAIL=%s, PUESTO=%s WHERE ID_EMPLEADO=%s"""
             cursor.execute(sql, (data['nombre'], data['apellidos'], data['email'], data['puesto'], id))
         conn.commit()
         return jsonify({"message": "empleado actualizado exitosamente"})
@@ -1160,7 +1335,7 @@ def eliminar_empleado(id):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
     try:
-        cursor.execute("DELETE FROM empleado WHERE ID_empleado = %s", (id,))
+        cursor.execute("DELETE FROM empleado WHERE ID_EMPLEADO = %s", (id,))
         conn.commit()
         return jsonify({"message": "empleado eliminado exitosamente"})
     except Exception as e:

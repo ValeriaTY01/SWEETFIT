@@ -710,6 +710,39 @@ fieldset.grupo-cliente legend {
   border-color: var(--color-primario);
 }
 
+.estado-finalizada {
+  color: white;
+  background-color: #28a745; /* verde */
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.estado-en-espera {
+  color: #856404;
+  background-color: #fff3cd; /* amarillo claro */
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.estado-cancelada {
+  color: white;
+  background-color: #dc3545; /* rojo */
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
 .titulo-modal {
   margin-bottom: 1rem;
   font-size: 1.4rem;
@@ -779,6 +812,19 @@ fieldset.grupo-cliente legend {
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.3s ease;
   margin: 0.5rem;
+}
+
+.btn-cancelarv {
+  padding: 0.6rem 0.6rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #8a2b2b;
+  color: var(--color-blanco);
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  margin: 0.5rem;
+
 }
 
 .btn-ticket:hover {

@@ -668,36 +668,6 @@ function renderPaginacionModal() {
   }
 }
 
-function cargarHistorialVentas() {
-  fetch("http://localhost:5000/api/ventas")
-    .then(res => res.json())
-    .then(ventas => {
-      const tabla = document.querySelector("#tablaVentas tbody");
-      tabla.innerHTML = "";
-
-      if (!ventas || ventas.length === 0) {
-        tabla.innerHTML = "<tr><td colspan='6'>No hay ventas registradas.</td></tr>";
-        return;
-      }
-
-      ventas.forEach(venta => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${venta.ID_VENTA}</td>
-          <td>${new Date(venta.FECHA_VENTA).toLocaleString()}</td>
-          <td>${venta.TIPO_VENTA}</td>
-          <td>${venta.EMPLEADO}</td>
-          <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
-          <td><button class="btn-ticket" onclick="mostrarTicketVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
-        `;
-        tabla.appendChild(row);
-      });
-    })
-    .catch(err => {
-      console.error("Error al cargar historial:", err);
-    });
-}
-
 function cerrarModalDetalleVenta() {
   document.getElementById("modalDetalleVenta").style.display = "none";
 }
@@ -790,6 +760,122 @@ function mostrarTicketVenta(id_venta) {
     });
 }
 
+function cargarVentaParaEdicion(idVenta) {
+  fetch(`http://localhost:5000/api/ventas/${idVenta}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      const venta = data.venta;
+      const carrito = data.carrito;
+
+      // Cargar datos cliente en formulario
+      document.getElementById("nombreCliente").value = venta.cliente_nombre || "";
+      document.getElementById("apellidoPaterno").value = venta.cliente_apellido_paterno || "";
+      document.getElementById("apellidoMaterno").value = venta.cliente_apellido_materno || "";
+      document.getElementById("direccionCliente").value = venta.cliente_direccion || "";
+      document.getElementById("telefonoCliente").value = venta.cliente_telefono || "";
+      document.getElementById("tipoVenta").value = (venta.TIPO_VENTA || "").toUpperCase();
+
+      // Limpiar tabla carrito actual
+      const tbodyCarrito = document.querySelector("#tablaCarrito tbody");
+      tbodyCarrito.innerHTML = "";
+
+      // Cargar productos al carrito, imitando agregarProductoAlCarrito
+      carrito.forEach(prod => {
+        const id = prod.ID_PRODUCTO;
+        const nombre = prod.NOMBRE;
+        const precio = parseFloat(prod.PRECIO);
+        const cantidad = parseInt(prod.cantidad);
+        const stock = parseInt(prod.stock_disponible) || 0;
+
+        const subtotal = (cantidad * precio).toFixed(2);
+        const row = document.createElement("tr");
+        row.dataset.id = id;
+
+        row.innerHTML = `
+          <td>${nombre}</td>
+          <td>
+            <input type="number" value="${cantidad}" min="1" max="${stock}" onchange="actualizarSubtotal(this, ${precio})">
+          </td>
+          <td>$${precio.toFixed(2)}</td>
+          <td class="subtotal">$${subtotal}</td>
+          <td><button onclick="eliminarProductoDelCarrito(this)">🗑️</button></td>
+        `;
+
+        tbodyCarrito.appendChild(row);
+      });
+
+      actualizarTotalVenta();
+      window.ventaEnEdicion = idVenta;
+
+      alert("Venta en espera cargada. Puedes continuar agregando productos y luego guardar.");
+    })
+    .catch(err => {
+      console.error("Error al cargar venta para edición:", err);
+      alert("Error al cargar la venta para edición");
+    });
+}
+
+function formatoEstado(estado) {
+  if (!estado) return estado;
+  const est = estado.toUpperCase();
+  switch(est) {
+    case 'FINALIZADA':
+      return `<span class="estado-finalizada">${estado}</span>`;
+    case 'EN ESPERA':
+      return `<span class="estado-en-espera">${estado}</span>`;
+    case 'CANCELADA':
+      return `<span class="estado-cancelada">${estado}</span>`;
+    default:
+      return `<span>${estado}</span>`;
+  }
+}
+
+// Carga historial con columna ESTADO y botón para cancelar
+function cargarHistorialVentas() {
+  fetch("http://localhost:5000/api/ventas")
+    .then(res => res.json())
+    .then(ventas => {
+      const tabla = document.querySelector("#tablaVentas tbody");
+      tabla.innerHTML = "";
+
+      if (!ventas || ventas.length === 0) {
+        tabla.innerHTML = "<tr><td colspan='7'>No hay ventas registradas.</td></tr>";
+        return;
+      }
+
+      ventas.forEach(venta => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${venta.ID_VENTA}</td>
+          <td>${new Date(venta.FECHA_VENTA).toLocaleString()}</td>
+          <td>${venta.TIPO_VENTA}</td>
+          <td>${venta.EMPLEADO}</td>
+          <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
+          <td>${formatoEstado(venta.ESTADO)}</td>
+          <td><button class="btn-ticket" onclick="mostrarTicketVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
+          <td>${ (venta.ESTADO !== 'FINALIZADA' && venta.ESTADO !== 'CANCELADA') ? `<button class="btn-cancelarv" onclick="cancelarVenta(${venta.ID_VENTA})">❌ Cancelar</button>` : '' }</td>
+
+        `;
+        // Agregar event listener solo si estado es EN ESPERA
+        if (venta.ESTADO === "EN ESPERA") {
+          row.style.cursor = "pointer";  // para que parezca clickeable
+          row.addEventListener("dblclick", () => cargarVentaParaEdicion(venta.ID_VENTA));
+        }
+
+        tabla.appendChild(row);
+      });
+    })
+    .catch(err => {
+      console.error("Error al cargar historial:", err);
+    });
+}
+
+// Igual para filtrar pero con columna estado y botón cancelar
 function filtrarVentas() {
   const fechaInicio = document.getElementById("filtroFechaInicio")?.value || '';
   const fechaFin = document.getElementById("filtroFechaFin")?.value || '';
@@ -802,11 +888,9 @@ function filtrarVentas() {
   if (fechaInicio && fechaFin) {
     url += `fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}&`;
   }
-
   if (tipoVenta) {
     url += `tipo_venta=${tipoVenta}&`;
   }
-
   if (idEmpleado) {
     url += `empleado=${idEmpleado}&`;
   }
@@ -818,7 +902,7 @@ function filtrarVentas() {
       tabla.innerHTML = "";
 
       if (!ventas || ventas.length === 0) {
-        tabla.innerHTML = "<tr><td colspan='6'>No se encontraron ventas.</td></tr>";
+        tabla.innerHTML = "<tr><td colspan='7'>No se encontraron ventas.</td></tr>";
         return;
       }
 
@@ -830,7 +914,9 @@ function filtrarVentas() {
           <td>${venta.TIPO_VENTA}</td>
           <td>${venta.nombre_empleado || '—'}</td>
           <td>$${parseFloat(venta.TOTAL_VENTA).toFixed(2)}</td>
+          <td>${formatoEstado(venta.ESTADO)}</td>
           <td><button class="btn-ticket" onclick="mostrarTicketVenta(${venta.ID_VENTA})">📄 Ticket</button></td>
+          <td>${ (venta.ESTADO !== 'FINALIZADA' && venta.ESTADO !== 'CANCELADA') ? `<button onclick="cancelarVenta(${venta.ID_VENTA})">❌ Cancelar</button>` : '' }</td>
         `;
         tabla.appendChild(row);
       });
@@ -840,28 +926,31 @@ function filtrarVentas() {
     });
 }
 
-function cargarSelectEmpleados() {
-  const selects = document.querySelectorAll("#selectEmpleado, #selectEmpleadoVenta");
-  if (!selects.length) return;
+// Función para cancelar la venta (cambia estado a CANCELADA)
+function cancelarVenta(idVenta) {
+  if (!confirm(`¿Deseas cancelar la venta ${idVenta}?`)) return;
 
-  fetch("http://localhost:5000/api/empleados")
+  fetch(`http://localhost:5000/api/ventas/${idVenta}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado: "CANCELADA" })
+  })
     .then(res => res.json())
-    .then(empleados => {
-      selects.forEach(select => {
-        select.innerHTML = "<option value=''>Seleccionar Empleado</option>";
-        empleados.forEach(emp => {
-          const option = document.createElement("option");
-          option.value = emp.ID_EMPLEADO;
-          option.textContent = `${emp.NOMBRE} ${emp.APELLIDOS}`;
-          select.appendChild(option);
-        });
-      });
+    .then(data => {
+      if (data.error) {
+        alert("Error: " + data.error);
+      } else {
+        alert(data.mensaje);
+        cargarHistorialVentas();
+      }
     })
     .catch(err => {
-      console.error("Error al cargar empleados:", err);
+      console.error("Error al cancelar venta:", err);
+      alert("Error al cancelar la venta");
     });
 }
 
+// Obtiene productos del carrito (sin cambios)
 function obtenerCarrito() {
   const filas = document.querySelectorAll("#tablaCarrito tbody tr");
   const carrito = [];
@@ -901,11 +990,11 @@ function registrarVenta() {
   const empleado = document.getElementById("empleado").value;
 
   const cliente = {
-    nombre: document.getElementById("nombreCliente").value,
-    apellido_paterno: document.getElementById("apellidoPaterno").value,
-    apellido_materno: document.getElementById("apellidoMaterno").value,
-    direccion: document.getElementById("direccionCliente").value,
-    telefono: document.getElementById("telefonoCliente").value
+    nombre: document.getElementById("nombreCliente").value.trim(),
+    apellido_paterno: document.getElementById("apellidoPaterno").value.trim(),
+    apellido_materno: document.getElementById("apellidoMaterno").value.trim(),
+    direccion: document.getElementById("direccionCliente").value.trim(),
+    telefono: document.getElementById("telefonoCliente").value.trim()
   };
 
   if (carrito.length === 0) {
@@ -913,25 +1002,138 @@ function registrarVenta() {
     return;
   }
 
-  fetch("http://localhost:5000/api/ventas", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tipo_venta: tipoVenta,
-      empleado: empleado,
-      cliente: cliente,
-      carrito: carrito
+  if (window.ventaEnEdicion) {
+    // Actualizar venta existente
+    fetch(`http://localhost:5000/api/ventas/${window.ventaEnEdicion}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        estado: "EN ESPERA", // Mantener la venta en espera para seguir editando
+        cliente: cliente,
+        carrito: carrito
+        // tipo_venta y empleado no los estás actualizando en el backend PUT actual, si quieres actualizar esos campos en DB, tendrías que extender el backend para soportarlo.
+      })
     })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.mensaje || "Venta actualizada correctamente");
+        limpiarFormularioVenta();
+        cargarHistorialVentas();
+        window.ventaEnEdicion = null;
+      })
+      .catch(err => {
+        console.error("Error al actualizar venta:", err);
+        alert("Error al actualizar la venta");
+      });
+  } else {
+    // Nueva venta (POST)
+    fetch("http://localhost:5000/api/ventas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipo_venta: tipoVenta,
+        empleado: empleado,
+        cliente: cliente,
+        carrito: carrito,
+        estado: "FINALIZADA"  // El estado para nueva venta ya finalizada
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.mensaje || "Venta registrada correctamente");
+        limpiarFormularioVenta();
+        cargarHistorialVentas();
+      })
+      .catch(err => {
+        console.error("Error al registrar venta:", err);
+        alert("Error al registrar la venta");
+      });
+  }
+}
+
+function guardarEnEspera() {
+  const carrito = obtenerCarrito();
+  if (!carrito || carrito.length === 0) {
+    alert("No hay productos en el carrito");
+    return;
+  }
+
+  const tipoVenta = document.getElementById("tipoVenta").value.trim();
+  if (!tipoVenta) {
+    alert("Por favor selecciona un tipo de venta.");
+    return;
+  }
+
+  const empleado = document.getElementById("empleado").value;
+
+  const cliente = {
+    nombre: document.getElementById("nombreCliente").value,
+    apellido_paterno: document.getElementById("apellidoPaterno").value,
+    apellido_materno: document.getElementById("apellidoMaterno").value,
+    direccion: document.getElementById("direccionCliente").value,
+    telefono: document.getElementById("telefonoCliente").value
+  };
+
+  const idVenta = window.ventaEnEdicion || null;
+
+  const url = idVenta
+    ? `http://localhost:5000/api/ventas/${idVenta}`
+    : "http://localhost:5000/api/ventas";
+
+  const method = idVenta ? "PUT" : "POST";
+
+  const datos = {
+    tipo_venta: tipoVenta,
+    empleado: empleado,
+    cliente: cliente,
+    carrito: carrito,
+    estado: "EN ESPERA"
+  };
+
+  console.log("JSON que se enviará:", datos);
+
+  fetch(url, {
+    method: method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datos)
   })
     .then(res => res.json())
     .then(data => {
-      alert(data.mensaje || "Venta registrada correctamente");
+      if (data.error) {
+        alert("Error: " + data.error);
+        return;
+      }
+
+      alert(data.mensaje || (idVenta ? "Venta actualizada" : "Venta guardada en espera correctamente"));
       limpiarFormularioVenta();
-      cargarHistorialVentas(); 
+      cargarHistorialVentas();
+      window.ventaEnEdicion = null;
     })
     .catch(err => {
-      console.error("Error al registrar venta:", err);
-      alert("Error al registrar la venta");
+      console.error("Error al guardar venta en espera:", err);
+      alert("Error al guardar la venta");
+    });
+}
+
+function cargarSelectEmpleados() {
+  const selects = document.querySelectorAll("#selectEmpleado, #selectEmpleadoVenta");
+  if (!selects.length) return;
+
+  fetch("http://localhost:5000/api/empleados")
+    .then(res => res.json())
+    .then(empleados => {
+      selects.forEach(select => {
+        select.innerHTML = "<option value=''>Seleccionar Empleado</option>";
+        empleados.forEach(emp => {
+          const option = document.createElement("option");
+          option.value = emp.ID_EMPLEADO;
+          option.textContent = `${emp.NOMBRE} ${emp.APELLIDOS}`;
+          select.appendChild(option);
+        });
+      });
+    })
+    .catch(err => {
+      console.error("Error al cargar empleados:", err);
     });
 }
 
@@ -995,6 +1197,7 @@ function limpiarFormularioVenta() {
   document.getElementById("formVenta").reset();
   document.querySelector("#tablaCarrito tbody").innerHTML = "";
   document.getElementById("totalVenta").textContent = "0.00";
+  window.ventaEnEdicion = null;
 }
 
 function autocompletarEmpleado() {
