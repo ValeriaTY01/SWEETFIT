@@ -414,19 +414,36 @@ def registrar_venta():
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # 1. Insertar cliente o buscar si ya existe
-        query_cliente = """
-            INSERT INTO cliente (NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, DIRECCION, TELEFONO)
-            VALUES (%s, %s, %s, %s, %s)
+        # 1. Buscar si el cliente ya existe
+        query_buscar_cliente = """
+            SELECT ID_CLIENTE FROM cliente
+            WHERE NOMBRE = %s AND APELLIDO_PATERNO = %s AND APELLIDO_MATERNO = %s AND TELEFONO = %s
         """
-        cursor.execute(query_cliente, (
+        cursor.execute(query_buscar_cliente, (
             cliente["nombre"],
             cliente["apellido_paterno"],
             cliente["apellido_materno"],
-            cliente["direccion"],
             cliente["telefono"]
         ))
-        id_cliente = cursor.lastrowid
+        cliente_existente = cursor.fetchone()
+
+        if cliente_existente:
+            id_cliente = cliente_existente[0]
+        else:
+            # Si no existe, insertarlo
+            query_cliente = """
+                INSERT INTO cliente (NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, DIRECCION, TELEFONO)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query_cliente, (
+                cliente["nombre"],
+                cliente["apellido_paterno"],
+                cliente["apellido_materno"],
+                cliente["direccion"],
+                cliente["telefono"]
+            ))
+            id_cliente = cursor.lastrowid
+
 
         # 2. Obtener ID del empleado (supongo que llega como nombre completo)
         query_empleado = "SELECT ID_EMPLEADO FROM empleado WHERE CONCAT(NOMBRE, ' ', APELLIDOS) = %s"
@@ -604,14 +621,16 @@ def obtener_detalles_venta(id_venta):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
 
-        # Obtener info cliente y venta
+        # Obtener info cliente, venta y empleado
         query_venta = """
             SELECT v.ID_VENTA, v.FECHA_VENTA, v.TIPO_VENTA, v.TOTAL_VENTA, v.ESTADO,
                    c.ID_CLIENTE, c.NOMBRE AS cliente_nombre, c.APELLIDO_PATERNO AS cliente_apellido_paterno,
                    c.APELLIDO_MATERNO AS cliente_apellido_materno, c.DIRECCION AS cliente_direccion,
-                   c.TELEFONO AS cliente_telefono
+                   c.TELEFONO AS cliente_telefono,
+                   e.NOMBRE AS empleado_nombre, e.APELLIDOS AS empleado_apellidos
             FROM venta v
             JOIN cliente c ON v.ID_CLIENTE = c.ID_CLIENTE
+            LEFT JOIN empleado e ON v.ID_EMPLEADO = e.ID_EMPLEADO
             WHERE v.ID_VENTA = %s
         """
         cursor.execute(query_venta, (id_venta,))
@@ -621,7 +640,8 @@ def obtener_detalles_venta(id_venta):
 
         # Obtener detalles del carrito (productos)
         query_detalle = """
-            SELECT dv.ID_PRODUCTO, p.NOMBRE, dv.CANTIDAD_VENTA AS cantidad, p.PRECIO, dv.SUBTOTAL_VENTA AS subtotal
+            SELECT dv.ID_PRODUCTO, p.NOMBRE, dv.CANTIDAD_VENTA AS cantidad, 
+                   p.PRECIO, dv.SUBTOTAL_VENTA AS subtotal
             FROM detalle_venta dv
             JOIN producto p ON dv.ID_PRODUCTO = p.ID_PRODUCTO
             WHERE dv.ID_VENTA = %s
@@ -632,11 +652,47 @@ def obtener_detalles_venta(id_venta):
         cursor.close()
         conn.close()
 
-        return jsonify({"venta": venta, "carrito": carrito})
+        # Construir cliente como nombre completo
+        cliente_nombre_completo = " ".join(filter(None, [
+            venta.get("cliente_nombre"),
+            venta.get("cliente_apellido_paterno"),
+            venta.get("cliente_apellido_materno")
+        ])).strip() or "Cliente desconocido"
+
+        # Construir empleado como nombre completo
+        empleado_nombre_completo = " ".join(filter(None, [
+            venta.get("empleado_nombre"),
+            venta.get("empleado_apellidos")
+        ])).strip() or "Empleado desconocido"
+
+        # Fecha en formato ISO para JS
+        fecha_iso = venta["FECHA_VENTA"].isoformat() if venta.get("FECHA_VENTA") else ""
+
+        # Estructura de respuesta
+        response = {
+            "orden": venta["ID_VENTA"],
+            "cliente": cliente_nombre_completo,
+            "empleado": empleado_nombre_completo,
+            "fecha": fecha_iso,
+            "direccion": venta.get("cliente_direccion", ""),
+            "telefono": venta.get("cliente_telefono", ""),
+            "tipo_venta": venta.get("TIPO_VENTA", ""),
+            "detallesV": [
+                {
+                    "ID_PRODUCTO": item["ID_PRODUCTO"],              # ¡Aquí está el ID correcto!
+                    "PRODUCTO": item["NOMBRE"],
+                    "CANTIDAD_VENTA": item["cantidad"],
+                    "PRECIO_UNITARIO": float(item["PRECIO"]),
+                    "SUBTOTAL_VENTA": float(item["subtotal"])
+                } for item in carrito
+            ]
+        }
+
+        return jsonify(response)
 
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
-
+    
     
 # Obtener historial de ventas con filtros
 @app.route('/api/ventas/historial', methods=['GET'])
@@ -818,7 +874,7 @@ def obtener_historial_compras(id_cliente):
 
         query = """
         SELECT V.ID_VENTA, V.TIPO_VENTA, V.TOTAL_VENTA, V.FECHA_VENTA
-        FROM VENTA V
+        FROM venta V
         WHERE V.ID_CLIENTE = %s
         """
         cursor.execute(query, (id_cliente,))
