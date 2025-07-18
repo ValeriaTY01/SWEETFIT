@@ -16,20 +16,21 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
-#db_config = {
-#    'host': os.environ['DB_HOST'],
-#    'user': os.environ['DB_USER'],
-#    'password': os.environ['DB_PASSWORD'],
-#    'database': os.environ['DB_NAME'],
-#    'port': 3306
-#}
 db_config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'root',
-   'password': '',
-   'database': 'sweetfit'
+    'host': os.environ['DB_HOST'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASSWORD'],
+    'database': os.environ['DB_NAME'],
+    'port': 3306
 }
+
+#db_config = {
+#    'host': 'localhost',
+#    'port': 3306,
+#    'user': 'chweHansol',
+#   'password': 'kS2!0cN70',
+#   'database': 'sweetfit'
+#}
 
 # ESTOS ENDPOINTS PERTENECEN A PANEL.HTML___________________________________________________
 
@@ -1034,9 +1035,10 @@ def registrar_compra():
             """, (id_compra, id_producto, cantidad, subtotal))
 
             # Actualizar inventario
-            cursor.execute("""
-                UPDATE producto SET CANTIDAD = CANTIDAD + %s WHERE ID_PRODUCTO = %s
-            """, (cantidad, id_producto))
+
+#            cursor.execute("""
+#                UPDATE producto SET CANTIDAD = CANTIDAD + %s WHERE ID_PRODUCTO = %s
+#           """, (cantidad, id_producto))
 
         # Actualizar total final
         cursor.execute("UPDATE compra SET TOTAL_COMPRA = %s WHERE ID_COMPRA = %s", (total, id_compra))
