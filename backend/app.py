@@ -597,14 +597,14 @@ def actualizar_venta_completa(id_venta):
             cursor.execute(insert_detalle_query, (id_venta, id_producto, cantidad, subtotal))
 
             # Descontar stock con protección para no pasar a negativo
-            cursor.execute("""
-                UPDATE producto
-                SET CANTIDAD = CASE
-                    WHEN CANTIDAD >= %s THEN CANTIDAD - %s
-                    ELSE 0
-                END
-                WHERE ID_PRODUCTO = %s
-            """, (cantidad, cantidad, id_producto))
+#            cursor.execute("""
+#                UPDATE producto
+#                SET CANTIDAD = CASE
+#                    WHEN CANTIDAD >= %s THEN CANTIDAD - %s
+#                    ELSE 0
+#                END
+#                WHERE ID_PRODUCTO = %s
+#            """, (cantidad, cantidad, id_producto))
 
         conn.commit()
         cursor.close()
