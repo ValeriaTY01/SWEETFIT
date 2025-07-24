@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 import mysql.connector
 from flask_cors import CORS
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta 
 import re
 from werkzeug.utils import secure_filename
 
@@ -596,16 +596,6 @@ def actualizar_venta_completa(id_venta):
 
             cursor.execute(insert_detalle_query, (id_venta, id_producto, cantidad, subtotal))
 
-            # Descontar stock con protección para no pasar a negativo
-#            cursor.execute("""
-#                UPDATE producto
-#                SET CANTIDAD = CASE
-#                    WHEN CANTIDAD >= %s THEN CANTIDAD - %s
-#                    ELSE 0
-#                END
-#                WHERE ID_PRODUCTO = %s
-#            """, (cantidad, cantidad, id_producto))
-
         conn.commit()
         cursor.close()
         conn.close()
@@ -1182,7 +1172,7 @@ def obtener_ventas_reporte():
                         DATE_FORMAT(FECHA_VENTA, '%Y-%m-%d %H:00:00') AS fecha,
                         SUM(TOTAL_VENTA) AS total_ventas
                     FROM venta
-                    WHERE DATE(FECHA_VENTA) = %s
+                    WHERE DATE(FECHA_VENTA) = %s AND ESTADO = 'FINALIZADA'
                     GROUP BY HOUR(FECHA_VENTA)
                     ORDER BY HOUR(FECHA_VENTA)
                 """
@@ -1194,7 +1184,7 @@ def obtener_ventas_reporte():
                         DATE(FECHA_VENTA) AS fecha,
                         SUM(TOTAL_VENTA) AS total_ventas
                     FROM venta
-                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 30 DAY
+                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 30 DAY AND ESTADO = 'FINALIZADA'
                     GROUP BY DATE(FECHA_VENTA)
                     ORDER BY fecha
                 """
@@ -1209,28 +1199,27 @@ def obtener_ventas_reporte():
 
                 query = """
                     SELECT 
-                        YEAR(FECHA_VENTA) AS anio,
-                        WEEK(FECHA_VENTA, 1) AS semana,
-                        DATE_FORMAT(STR_TO_DATE(CONCAT(YEAR(FECHA_VENTA), 'W', LPAD(WEEK(FECHA_VENTA, 1), 2, '0')), '%XW%V'), '%Y-%m-%d') AS fecha,
+                        DATE(FECHA_VENTA) AS fecha,
                         SUM(TOTAL_VENTA) AS total_ventas
                     FROM venta
-                    WHERE YEAR(FECHA_VENTA) = %s AND WEEK(FECHA_VENTA, 1) = %s
-                    GROUP BY anio, semana
-                    ORDER BY anio, semana
+                    WHERE YEAR(FECHA_VENTA) = %s 
+                    AND WEEK(FECHA_VENTA, 1) = %s
+                    AND ESTADO = 'FINALIZADA'
+                    GROUP BY DATE(FECHA_VENTA)
+                    ORDER BY fecha
                 """
                 cursor.execute(query, (anio, semana))
                 ventas = cursor.fetchall()
             else:
                 query = """
                     SELECT 
-                        YEAR(FECHA_VENTA) AS anio,
-                        WEEK(FECHA_VENTA, 1) AS semana,
-                        DATE_FORMAT(STR_TO_DATE(CONCAT(YEAR(FECHA_VENTA), 'W', LPAD(WEEK(FECHA_VENTA, 1), 2, '0')), '%XW%V'), '%Y-%m-%d') AS fecha,
+                        DATE(FECHA_VENTA) AS fecha,
                         SUM(TOTAL_VENTA) AS total_ventas
                     FROM venta
                     WHERE FECHA_VENTA >= CURDATE() - INTERVAL 12 WEEK
-                    GROUP BY anio, semana
-                    ORDER BY anio, semana
+                    AND ESTADO = 'FINALIZADA'
+                    GROUP BY DATE(FECHA_VENTA)
+                    ORDER BY fecha
                 """
                 cursor.execute(query)
                 ventas = cursor.fetchall()
@@ -1248,7 +1237,7 @@ def obtener_ventas_reporte():
                         DATE_FORMAT(FECHA_VENTA, '%Y-%m-01') AS fecha,
                         SUM(TOTAL_VENTA) AS total_ventas
                     FROM venta
-                    WHERE YEAR(FECHA_VENTA) = %s AND MONTH(FECHA_VENTA) = %s
+                    WHERE YEAR(FECHA_VENTA) = %s AND MONTH(FECHA_VENTA) = %s AND ESTADO = 'FINALIZADA'
                     GROUP BY anio, mes
                     ORDER BY anio, mes
                 """
@@ -1262,7 +1251,7 @@ def obtener_ventas_reporte():
                         DATE_FORMAT(FECHA_VENTA, '%Y-%m-01') AS fecha,
                         SUM(TOTAL_VENTA) AS total_ventas
                     FROM venta
-                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 12 MONTH
+                    WHERE FECHA_VENTA >= CURDATE() - INTERVAL 12 MONTH AND ESTADO = 'FINALIZADA'
                     GROUP BY anio, mes
                     ORDER BY anio, mes
                 """
@@ -1309,6 +1298,97 @@ def obtener_categorias_mas_vendidas():
     except mysql.connector.Error as err:
         print("ERROR MYSQL:", err)
         return jsonify({'error': str(err)}), 500
+    
+
+@app.route('/api/reportes/detalles', methods=['GET'])
+def obtener_reporte_completo():
+    tipo = request.args.get('tipo')
+    fecha = request.args.get('fecha')
+
+    if not tipo or not fecha:
+        return jsonify({'error': 'Parámetros requeridos: tipo y fecha'}), 400
+
+    # Validar fechas según tipo
+    if tipo == 'diario':
+        fecha_valida = validar_fecha_diario(fecha)
+        if not fecha_valida:
+            return jsonify({'error': 'Fecha inválida (YYYY-MM-DD requerida)'}), 400
+        filtro_fecha = "DATE(v.FECHA_VENTA) = %s"
+        filtro_fecha_compra = "DATE(c.FECHA_COMPRA) = %s"
+        params = (fecha_valida,)
+    
+    elif tipo == 'semanal':
+        anio, semana = parse_fecha_semana(fecha)
+        if not anio or not semana:
+            return jsonify({'error': 'Fecha inválida para semanal (YYYY-Www)'}), 400
+        filtro_fecha = "YEAR(v.FECHA_VENTA) = %s AND WEEK(v.FECHA_VENTA, 1) = %s"
+        filtro_fecha_compra = "YEAR(c.FECHA_COMPRA) = %s AND WEEK(c.FECHA_COMPRA, 1) = %s"
+        params = (anio, semana)
+    
+    elif tipo == 'mensual':
+        anio, mes = validar_fecha_mensual(fecha)
+        if not anio or not mes:
+            return jsonify({'error': 'Fecha inválida para mensual (YYYY-MM)'}), 400
+        filtro_fecha = "YEAR(v.FECHA_VENTA) = %s AND MONTH(v.FECHA_VENTA) = %s"
+        filtro_fecha_compra = "YEAR(c.FECHA_COMPRA) = %s AND MONTH(c.FECHA_COMPRA) = %s"
+        params = (anio, mes)
+    
+    else:
+        return jsonify({'error': 'Tipo inválido. Use diario, semanal o mensual'}), 400
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor(dictionary=True)
+
+        # Detalle de ventas
+        query_ventas = f"""
+            SELECT 
+                v.FECHA_VENTA,
+                p.NOMBRE AS producto,
+                p.CATEGORIA,
+                dv.CANTIDAD_VENTA,
+                p.PRECIO,
+                dv.SUBTOTAL_VENTA
+            FROM venta v
+            JOIN detalle_venta dv ON v.ID_VENTA = dv.ID_VENTA
+            JOIN producto p ON dv.ID_PRODUCTO = p.ID_PRODUCTO
+            WHERE {filtro_fecha} AND v.ESTADO = 'FINALIZADA'
+        """
+        cursor.execute(query_ventas, params)
+        ventas = cursor.fetchall()
+        total_ventas = sum(v['SUBTOTAL_VENTA'] for v in ventas)
+
+        # Detalle de compras
+        query_compras = f"""
+            SELECT 
+                c.FECHA_COMPRA,
+                pr.NOMBRE AS proveedor,
+                p.NOMBRE AS producto,
+                dc.CANTIDAD_COMPRA,
+                dc.SUBTOTAL_COMPRA
+            FROM compra c
+            JOIN detalle_compra dc ON c.ID_COMPRA = dc.ID_COMPRA
+            JOIN producto p ON dc.ID_PRODUCTO = p.ID_PRODUCTO
+            JOIN proveedor pr ON c.ID_PROVEEDOR = pr.ID_PROVEEDOR
+            WHERE {filtro_fecha_compra}
+        """
+        cursor.execute(query_compras, params)
+        compras = cursor.fetchall()
+        total_compras = sum(c['SUBTOTAL_COMPRA'] for c in compras)
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            'ventas': ventas,
+            'totalVentas': total_ventas,
+            'compras': compras,
+            'totalCompras': total_compras
+        })
+
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+
 
 # ESTO ENDPOINT  PERTENECE A LA CARGA DE empleadoS DE VENTAS__________________________________________________________________________________________
 @app.route('/api/empleados', methods=['GET'])
