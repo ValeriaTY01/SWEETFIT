@@ -1014,7 +1014,7 @@ def registrar_compra():
             id_producto = prod['id']
             cantidad = prod['cantidad']
 
-            cursor.execute("SELECT PRECIO FROM PRODUCTO WHERE ID_PRODUCTO = %s", (id_producto,))
+            cursor.execute("SELECT PRECIO FROM producto WHERE ID_PRODUCTO = %s", (id_producto,))
             precio = cursor.fetchone()[0]
             subtotal = float(precio) * cantidad
             total += subtotal
